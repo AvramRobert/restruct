@@ -4,8 +4,6 @@ import parser.ParsingResult.Failure
 import scala.annotation.tailrec
 import scala.util.parsing.combinator.*
 
-case class Tempo(bpm: Long)
-
 enum Note(val encoding: String):
   case A extends Note("A")
   case B extends Note("B")
@@ -24,9 +22,15 @@ enum Accidental(val encoding: String):
   case Flat extends Accidental("♭")
   case Sharp extends Accidental("#")
 
-case class Key(note: Note, accidental: Accidental, scale: Scale)
+case class Key(note: Note, accidental: Accidental, scale: Scale) {
+  val encoding: String = s"$note$accidental$scale"
+}
 
-case class FileName(title: String, key: Key, tempo: Tempo)
+case class Tempo(bpm: Long) {
+  val encoding: String = s"${bpm.toFloat.floor.toLong}s bpm"
+}
+
+case class FileData(title: String, key: Key, tempo: Tempo)
 
 object Parser extends RegexParsers {
   private def noteParser(note: Note): Parser[Note] = s"[${note.encoding}]".r.map { _ => note }
@@ -97,11 +101,11 @@ object Parser extends RegexParsers {
     title <- until(key)
   } yield title
 
-  val fileName: Parser[FileName] = for {
+  val fileName: Parser[FileData] = for {
     title <- title
     key   <- key
     tempo <- tempo
-  } yield FileName(title, key, tempo)
+  } yield FileData(title, key, tempo)
 
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
     case Success(result, _) => ParsingResult.Success(result)

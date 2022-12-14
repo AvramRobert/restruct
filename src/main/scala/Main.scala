@@ -1,18 +1,37 @@
-import parser.Parser
+import parser.{FileData, Parser}
 
+import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import java.io.File
 import scala.annotation.tailrec
 import scala.util.chaining.*
 import scala.util.parsing.combinator.RegexParsers
+import parser.*
 
-@main def hello(): Unit = {
-  val p = Parser.until(Parser.number)
-  val x = "     this is a complete sentence25"
+@main def main: Unit = list("path")
+  .pipe(dissect)
+  .pipe(restructure)
 
-  println(Parser.run(p, x))
-}
+case class FileEntry(file: File, fileData: FileData)
 
-def filesInDir(path: String): List[File] = {
+def restructure(files: List[FileEntry]): Unit =
+  files
+    .foreach { entry =>
+      val dir: Path = Paths.get(entry.fileData.key.encoding, entry.fileData.tempo.encoding)
+      val newFilePath = dir.resolve(s"${entry.fileData.title} - ${entry.fileData.tempo.bpm}")
+      dir.toFile.mkdirs()
+      Files.copy(entry.file.toPath, newFilePath, StandardCopyOption.REPLACE_EXISTING)
+    }
+
+def dissect(files: List[File]): List[FileEntry] =
+  files
+    .map { file => Parser
+      .run(Parser.fileName, file.getName)
+      .map { data => FileEntry(file, data) }
+    }
+    .filter { value => value.isSuccess }
+    .map { value => value.success.get }
+
+def list(path: String): List[File] = {
   @tailrec
   def recurse(dirs: List[File], files: List[File] = List.empty): List[File] = dirs match {
     case dir :: dirs if dir.isFile => recurse(dirs, dir +: files)

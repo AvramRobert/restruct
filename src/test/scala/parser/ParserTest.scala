@@ -133,7 +133,7 @@ class ParserTest extends munit.FunSuite {
   test("can parse file names") {
     testParser(
       data = Map(
-        "file-name E maj 125 bpm" -> FileName(title = "file-name", key = Key(Note.E, Accidental.None, Scale.Major), Tempo(125))
+        "file-name E maj 125 bpm" -> FileData(title = "file-name", key = Key(Note.E, Accidental.None, Scale.Major), Tempo(125))
       ),
       parser = Parser.fileName
     )
