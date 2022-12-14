@@ -1,8 +1,15 @@
 package parser
 
 import parser.ParsingResult.Failure
+import parser.Rule.TitleRule
+
 import scala.annotation.tailrec
 import scala.util.parsing.combinator.*
+
+enum Rule(val reference: String):
+  case TitleRule extends Rule("title")
+  case KeyRule extends Rule("key")
+  case TempoRule extends Rule("tempo")
 
 enum Note(val encoding: String):
   case A extends Note("A")
@@ -35,7 +42,24 @@ case class FileData(title: String, key: Key, tempo: Tempo)
 object Parser extends RegexParsers {
   private def noteParser(note: Note): Parser[Note] = s"[${note.encoding}]".r.map { _ => note }
 
+  def until[A](p: Parser[A]): Parser[String] = Parser { input =>
+    val start = input.pos.column - 1
+
+    @tailrec
+    def consume(in: Input, offset: Int = start): ParseResult[String] = {
+      p(in) match {
+        case Failure(_, _) => consume(in.rest, offset + 1)
+        case Error(_, _) => consume(in.rest, offset + 1)
+        case Success(_, _) => Success(input.source.subSequence(start, offset).toString.trim, in)
+      }
+    }
+
+    consume(input)
+  }
+
   def anyCase(value: String): Parser[String] = s"(?i)($value)".r
+
+  val percent: Parser[Char] = s"(\\%)".r.map { c => c.head }
 
   val blank: Parser[Unit] = " ".r.map { _ => () }
 
@@ -46,18 +70,11 @@ object Parser extends RegexParsers {
 
   val word: Parser[String] = ".+?( |-)".r
 
-  def until[A](p: Parser[A]): Parser[String] = Parser { input =>
-    val start = input.pos.column - 1
-    @tailrec
-    def consume(in: Input, offset: Int = start): ParseResult[String] = {
-      p(in) match {
-        case Failure(_, _) => consume(in.rest, offset + 1)
-        case Error(_, _)   => consume(in.rest, offset + 1)
-        case Success(_, _) => Success(input.source.subSequence(start, offset).toString.trim, in)
-      }
-    }
-    consume(input)
-  }
+  def grammarToken(ref: String): Parser[String] = for {
+    _ <- percent
+    r <-  anyCase(ref)
+    _ <- percent
+  } yield r
 
   val A: Parser[Note] = noteParser(Note.A)
   val B: Parser[Note] = noteParser(Note.B)
@@ -106,6 +123,14 @@ object Parser extends RegexParsers {
     key   <- key
     tempo <- tempo
   } yield FileData(title, key, tempo)
+
+  val titleRule: Parser[Rule] = grammarToken(Rule.TitleRule.reference).map { _ => Rule.TitleRule }
+  val keyRule: Parser[Rule] = grammarToken(Rule.KeyRule.reference).map { _ => Rule.KeyRule }
+  val tempoRule: Parser[Rule] = grammarToken(Rule.TempoRule.reference).map { _ => Rule.TempoRule }
+
+  val rule: Parser[Rule] = titleRule ||| keyRule ||| tempoRule
+
+  val grammar: Parser[List[Rule]] = rule.*
 
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
     case Success(result, _) => ParsingResult.Success(result)

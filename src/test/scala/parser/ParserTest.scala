@@ -139,6 +139,26 @@ class ParserTest extends munit.FunSuite {
     )
   }
 
+  test("Can parse grammar rules") {
+    testParser(
+      data = Map(
+        "%title%" -> Rule.TitleRule,
+        "%key%" -> Rule.KeyRule,
+        "%tempo%" -> Rule.TempoRule
+      ),
+      parser = Parser.rule
+    )
+  }
+
+  test("Can parse a file name grammar") {
+    testParser(
+      data = Map(
+        "%tempo% %title% %title% %key%" -> List(Rule.TempoRule, Rule.TitleRule, Rule.TitleRule, Rule.KeyRule)
+      ),
+      parser = Parser.grammar
+    )
+  }
+
   private def testParser[A](data: Map[String, A], parser: Parser.Parser[A]): Unit = {
     val actual = data
       .map { case (input, expected) => Parser.run(parser, input) -> expected }
@@ -154,7 +174,7 @@ class ParserTest extends munit.FunSuite {
         .filter { case (actual, _) => actual.isSuccess }
         .map { case (actual, expected) => actual.success.get -> expected }
 
-    if (failed.nonEmpty) fail(s"Could not convert: ${failed.mkString("\n")}")
+    if (failed.nonEmpty) fail(s"Could not convert. Reason: \n${failed.mkString("\n")}\n")
     else succeeded.foreach { case (actual, expected) => assertEquals(actual, expected) }
   }
 }
