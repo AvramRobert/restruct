@@ -51,6 +51,10 @@ val allNotes: List[Key] = for {
 object KeyParser extends RegexParsers {
   private val emptyString: Parser[Unit] = " ".r.map { _ => () }
 
+  private def noteParser(note: Note): Parser[Note] = s"[${note.encoding}]".r.map { _ => note }
+
+  private def anyCase(value: String): Parser[String] = s"(?i)($value)".r
+
   val A: Parser[Note] = noteParser(Note.A)
   val B: Parser[Note] = noteParser(Note.B)
   val C: Parser[Note] = noteParser(Note.C)
@@ -59,11 +63,11 @@ object KeyParser extends RegexParsers {
   val F: Parser[Note] = noteParser(Note.F)
   val G: Parser[Note] = noteParser(Note.G)
 
-  val maj: Parser[Scale] = s"(${Scale.Major.encoding})".r.map { _ => Scale.Major } ||| "".r.map { _ => Scale.Major }
-  val min: Parser[Scale] = s"(${Scale.Minor.encoding})".r.map { _ => Scale.Minor }
+  val maj: Parser[Scale] = (anyCase(Scale.Major.encoding) ||| "".r).map { _ => Scale.Major }
+  val min: Parser[Scale] = anyCase(Scale.Minor.encoding).map { _ => Scale.Minor }
 
-  val sharp: Parser[Accidental] = s"(${Accidental.Sharp.encoding})".r.map { _ => Accidental.Sharp }
-  val flat: Parser[Accidental] = s"(${Accidental.Flat.encoding})".r.map { _ => Accidental.Flat }
+  val sharp: Parser[Accidental] = anyCase(Accidental.Sharp.encoding).map { _ => Accidental.Sharp }
+  val flat: Parser[Accidental] = anyCase(Accidental.Flat.encoding).map { _ => Accidental.Flat }
   val noAcc: Parser[Accidental] = "".r.map { _ => Accidental.None }
 
   val note: Parser[Note] = A ||| B ||| C ||| D ||| E ||| F ||| G
@@ -84,5 +88,4 @@ object KeyParser extends RegexParsers {
     case Error(msg, _) => ParsingResult.Failure(msg)
     case Failure(msg, _) => ParsingResult.Failure(msg)
   }
-  private def noteParser(note: Note): Parser[Note] = s"[${note.encoding}]".r.map { _ => note }
 }

@@ -38,23 +38,38 @@ class KeyParserTest extends munit.FunSuite {
   }
 
   test("Can parse keys") {
+    val singular = Map(
+      "A" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "A   " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "    A" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "   A   " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+    )
+    val scaled = Map(
+      "AMin" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Minor),
+      "Amaj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "Amaj    " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "    Amaj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "  A Maj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "A maj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+    )
+    val accidentalSingular = Map(
+      "A#" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "   A#" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "A#    " -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "   A#    " -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+    )
+
+    val accidentalScaled = Map(
+      "A#maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "  A#maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "A#maj     " -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "A# maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "  A# maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "A # maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "  A # maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major)
+    )
     testParser(
-      data = Map(
-        "A" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-        "A   " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-        "    A" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-        "   A   " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-        "    Amaj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-        "Amaj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-        "  A maj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-        "A maj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-        "A#maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-        "  A#maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-        "A# maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-        "  A# maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-        "A # maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-        "  A # maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major)
-      ),
+      data = singular ++ scaled ++ accidentalSingular ++ accidentalScaled,
       parser = KeyParser.key
     )
   }
