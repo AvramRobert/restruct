@@ -1,10 +1,16 @@
+import parser.Parser
+
 import java.io.File
 import scala.annotation.tailrec
 import scala.util.chaining.*
 import scala.util.parsing.combinator.RegexParsers
 
-@main def hello: Unit =
-  println("Hello world!")
+@main def hello(): Unit = {
+  val p = Parser.until(Parser.number)
+  val x = "     this is a complete sentence25"
+
+  println(Parser.run(p, x))
+}
 
 def filesInDir(path: String): List[File] = {
   @tailrec

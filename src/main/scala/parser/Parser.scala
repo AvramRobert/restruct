@@ -4,7 +4,7 @@ import parser.ParsingResult.Failure
 import scala.annotation.tailrec
 import scala.util.parsing.combinator.*
 
-case class Tempo(bpm: String)
+case class Tempo(bpm: Long)
 
 enum Note(val encoding: String):
   case A extends Note("A")
@@ -26,15 +26,35 @@ enum Accidental(val encoding: String):
 
 case class Key(note: Note, accidental: Accidental, scale: Scale)
 
+case class FileName(title: String, key: Key, tempo: Tempo)
+
 object Parser extends RegexParsers {
   private def noteParser(note: Note): Parser[Note] = s"[${note.encoding}]".r.map { _ => note }
 
-  val emptyString: Parser[Unit] = " ".r.map { _ => () }
-
   def anyCase(value: String): Parser[String] = s"(?i)($value)".r
 
-  val stringNumber: Parser[String] = s"[0-9]*".r
-  
+  val blank: Parser[Unit] = " ".r.map { _ => () }
+
+  val number: Parser[Long] = s"[0-9]*".r.flatMap { s =>
+    if(s.isBlank) failure("Number regex read nothing. Input did not start with digits.")
+    else success(s.toLong)
+  }
+
+  val word: Parser[String] = ".+?( |-)".r
+
+  def until[A](p: Parser[A]): Parser[String] = Parser { input =>
+    val start = input.pos.column - 1
+    @tailrec
+    def consume(in: Input, offset: Int = start): ParseResult[String] = {
+      p(in) match {
+        case Failure(_, _) => consume(in.rest, offset + 1)
+        case Error(_, _)   => consume(in.rest, offset + 1)
+        case Success(_, _) => Success(input.source.subSequence(start, offset).toString.trim, in)
+      }
+    }
+    consume(input)
+  }
+
   val A: Parser[Note] = noteParser(Note.A)
   val B: Parser[Note] = noteParser(Note.B)
   val C: Parser[Note] = noteParser(Note.C)
@@ -57,20 +77,31 @@ object Parser extends RegexParsers {
   val bpm: Parser[String] = anyCase("bpm")
 
   val key: Parser[Key] = for {
-    _     <- emptyString.*
+    _     <- blank.*
     note  <- note
-    _     <- emptyString.*
+    _     <- blank.*
     acc   <- accidental
-    _     <- emptyString.*
+    _     <- blank.*
     scale <- scale
   } yield Key(note, acc, scale)
 
   val tempo: Parser[Tempo] = for {
-    _ <- emptyString.*
-    num <- stringNumber
-    _ <- emptyString.*
+    _ <- blank.*
+    num <- number
+    _ <- blank.*
     _ <- bpm
   } yield Tempo(num)
+
+  val title: Parser[String] = for {
+    _ <- blank.*
+    title <- until(key)
+  } yield title
+
+  val fileEntry: Parser[FileName] = for {
+    title <- title
+    key   <- key
+    tempo <- tempo
+  } yield FileName(title, key, tempo)
 
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
     case Success(result, _) => ParsingResult.Success(result)

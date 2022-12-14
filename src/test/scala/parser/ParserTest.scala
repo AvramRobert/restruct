@@ -4,6 +4,18 @@ import parser.*
 
 import scala.util.parsing.combinator.*
 class ParserTest extends munit.FunSuite {
+
+  test("Parses until another parser is successful") {
+    testParser(
+      data = Map(
+        "hello   1" -> "hello",
+        "     this is a complete sentence25" -> "this is a complete sentence",
+        "    i can have blanks anywhere    24" -> "i can have blanks anywhere"
+      ),
+      parser = Parser.until(Parser.number)
+    )
+  }
+
   test("Can parse notes") {
     testParser(
       data = Map(
@@ -93,26 +105,26 @@ class ParserTest extends munit.FunSuite {
   test("Can parse string numbers") {
     testParser(
       data = Map(
-        "1" -> "1",
-        "42" -> "42",
-        "602" -> "602",
-        "1052" -> "1052"
+        "1" -> 1,
+        "42" -> 42,
+        "602" -> 602,
+        "1052" -> 1052
       ),
-      parser = Parser.stringNumber
+      parser = Parser.number
     )
   }
 
   test("Can parse tempo") {
     testParser(
       data = Map(
-        "120bpm" -> Tempo("120"),
-        "   120bpm" -> Tempo("120"),
-        "120bpm    " -> Tempo("120"),
-        "   120bpm" -> Tempo("120"),
-        "120    bpm" -> Tempo("120"),
-        "    120    bpm" -> Tempo("120"),
-        "120    bpm    " -> Tempo("120"),
-        "   120    bpm   " -> Tempo("120")
+        "120bpm" -> Tempo(120),
+        "   120bpm" -> Tempo(120),
+        "120bpm    " -> Tempo(120),
+        "   120bpm" -> Tempo(120),
+        "120    bpm" -> Tempo(120),
+        "    120    bpm" -> Tempo(120),
+        "120    bpm    " -> Tempo(120),
+        "   120    bpm   " -> Tempo(120)
       ),
       parser = Parser.tempo
     )
