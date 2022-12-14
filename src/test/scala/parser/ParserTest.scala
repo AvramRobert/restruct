@@ -1,8 +1,9 @@
-import parser.{Key, Note, Scale, Accidental, KeyParser}
+package parser
 
 import parser.*
+
 import scala.util.parsing.combinator.*
-class KeyParserTest extends munit.FunSuite {
+class ParserTest extends munit.FunSuite {
   test("Can parse notes") {
     testParser(
       data = Map(
@@ -14,7 +15,7 @@ class KeyParserTest extends munit.FunSuite {
         "F" -> Note.F,
         "G" -> Note.G
       ),
-      parser = KeyParser.note
+      parser = Parser.note
     )
   }
 
@@ -25,7 +26,7 @@ class KeyParserTest extends munit.FunSuite {
         "maj" -> Scale.Major,
         "" -> Scale.Major
       ),
-      parser = KeyParser.scale
+      parser = Parser.scale
     )
   }
 
@@ -36,7 +37,7 @@ class KeyParserTest extends munit.FunSuite {
         "♭" -> Accidental.Flat,
         "" -> Accidental.None
       ),
-      parser = KeyParser.accidental
+      parser = Parser.accidental
     )
   }
 
@@ -73,13 +74,53 @@ class KeyParserTest extends munit.FunSuite {
     )
     testParser(
       data = singular ++ scaled ++ accidentalSingular ++ accidentalScaled,
-      parser = KeyParser.key
+      parser = Parser.key
     )
   }
 
-  private def testParser[A](data: Map[String, A], parser: KeyParser.Parser[A]): Unit = {
+  test("Can parse bpm") {
+    testParser(
+      data = Map(
+        "bpm" -> "bpm",
+        "     bpm" -> "bpm",
+        "bpm    " -> "bpm",
+        "   bpm   " -> "bpm"
+      ),
+      parser = Parser.bpm
+    )
+  }
+
+  test("Can parse string numbers") {
+    testParser(
+      data = Map(
+        "1" -> "1",
+        "42" -> "42",
+        "602" -> "602",
+        "1052" -> "1052"
+      ),
+      parser = Parser.stringNumber
+    )
+  }
+
+  test("Can parse tempo") {
+    testParser(
+      data = Map(
+        "120bpm" -> Tempo("120"),
+        "   120bpm" -> Tempo("120"),
+        "120bpm    " -> Tempo("120"),
+        "   120bpm" -> Tempo("120"),
+        "120    bpm" -> Tempo("120"),
+        "    120    bpm" -> Tempo("120"),
+        "120    bpm    " -> Tempo("120"),
+        "   120    bpm   " -> Tempo("120")
+      ),
+      parser = Parser.tempo
+    )
+  }
+
+  private def testParser[A](data: Map[String, A], parser: Parser.Parser[A]): Unit = {
     val actual = data
-      .map { case (input, expected) => KeyParser.run(parser, input) -> expected }
+      .map { case (input, expected) => Parser.run(parser, input) -> expected }
 
     val failed =
       actual
@@ -91,7 +132,6 @@ class KeyParserTest extends munit.FunSuite {
       actual
         .filter { case (actual, _) => actual.isSuccess }
         .map { case (actual, expected) => actual.success.get -> expected }
-
 
     if (failed.nonEmpty) fail(s"Could not convert: ${failed.mkString("\n")}")
     else succeeded.foreach { case (actual, expected) => assertEquals(actual, expected) }

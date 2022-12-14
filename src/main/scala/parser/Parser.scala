@@ -1,9 +1,10 @@
 package parser
 
-import parser.KeyParser.parse
 import parser.ParsingResult.Failure
 import scala.annotation.tailrec
 import scala.util.parsing.combinator.*
+
+case class Tempo(bpm: String)
 
 enum Note(val encoding: String):
   case A extends Note("A")
@@ -25,19 +26,15 @@ enum Accidental(val encoding: String):
 
 case class Key(note: Note, accidental: Accidental, scale: Scale)
 
-val allNotes: List[Key] = for {
-  note       <- Note.values.toList
-  scale      <- Scale.values.toList
-  accidental <- Accidental.values.toList
-} yield Key(note, accidental, scale)
-
-object KeyParser extends RegexParsers {
-  private val emptyString: Parser[Unit] = " ".r.map { _ => () }
-
+object Parser extends RegexParsers {
   private def noteParser(note: Note): Parser[Note] = s"[${note.encoding}]".r.map { _ => note }
 
-  private def anyCase(value: String): Parser[String] = s"(?i)($value)".r
+  val emptyString: Parser[Unit] = " ".r.map { _ => () }
 
+  def anyCase(value: String): Parser[String] = s"(?i)($value)".r
+
+  val stringNumber: Parser[String] = s"[0-9]*".r
+  
   val A: Parser[Note] = noteParser(Note.A)
   val B: Parser[Note] = noteParser(Note.B)
   val C: Parser[Note] = noteParser(Note.C)
@@ -57,6 +54,8 @@ object KeyParser extends RegexParsers {
   val scale: Parser[Scale] = min ||| maj
   val accidental: Parser[Accidental] = sharp ||| flat ||| noAcc
 
+  val bpm: Parser[String] = anyCase("bpm")
+
   val key: Parser[Key] = for {
     _     <- emptyString.*
     note  <- note
@@ -65,6 +64,13 @@ object KeyParser extends RegexParsers {
     _     <- emptyString.*
     scale <- scale
   } yield Key(note, acc, scale)
+
+  val tempo: Parser[Tempo] = for {
+    _ <- emptyString.*
+    num <- stringNumber
+    _ <- emptyString.*
+    _ <- bpm
+  } yield Tempo(num)
 
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
     case Success(result, _) => ParsingResult.Success(result)
