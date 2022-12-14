@@ -97,7 +97,7 @@ object Parser extends RegexParsers {
     title <- until(key)
   } yield title
 
-  val fileEntry: Parser[FileName] = for {
+  val fileName: Parser[FileName] = for {
     title <- title
     key   <- key
     tempo <- tempo
