@@ -40,8 +40,16 @@ class KeyParserTest extends munit.FunSuite {
   test("Can parse keys") {
     testParser(
       data = Map(
+        "    Amaj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
         "Amaj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-        "A#maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major)
+        "  A maj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+        "A maj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+        "A#maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+        "  A#maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+        "A# maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+        "  A# maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+        "A # maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+        "  A # maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major)
       ),
       parser = KeyParser.key
     )

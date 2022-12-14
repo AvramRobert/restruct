@@ -49,28 +49,33 @@ val allNotes: List[Key] = for {
 } yield Key(note, accidental, scale)
 
 object KeyParser extends RegexParsers {
-  def A: Parser[Note] = noteParser(Note.A)
-  def B: Parser[Note] = noteParser(Note.B)
-  def C: Parser[Note] = noteParser(Note.C)
-  def D: Parser[Note] = noteParser(Note.D)
-  def E: Parser[Note] = noteParser(Note.E)
-  def F: Parser[Note] = noteParser(Note.F)
-  def G: Parser[Note] = noteParser(Note.G)
+  private val emptyString: Parser[Unit] = " ".r.map { _ => () }
 
-  def maj: Parser[Scale] = s"(${Scale.Major.encoding})".r.map { _ => Scale.Major } ||| "".r.map { _ => Scale.Major }
-  def min: Parser[Scale] = s"(${Scale.Minor.encoding})".r.map { _ => Scale.Minor }
+  val A: Parser[Note] = noteParser(Note.A)
+  val B: Parser[Note] = noteParser(Note.B)
+  val C: Parser[Note] = noteParser(Note.C)
+  val D: Parser[Note] = noteParser(Note.D)
+  val E: Parser[Note] = noteParser(Note.E)
+  val F: Parser[Note] = noteParser(Note.F)
+  val G: Parser[Note] = noteParser(Note.G)
 
-  def sharp: Parser[Accidental] = s"(${Accidental.Sharp.encoding})".r.map { _ => Accidental.Sharp }
-  def flat: Parser[Accidental] = s"(${Accidental.Flat.encoding})".r.map { _ => Accidental.Flat }
-  def noAcc: Parser[Accidental] = "".r.map { _ => Accidental.None }
+  val maj: Parser[Scale] = s"(${Scale.Major.encoding})".r.map { _ => Scale.Major } ||| "".r.map { _ => Scale.Major }
+  val min: Parser[Scale] = s"(${Scale.Minor.encoding})".r.map { _ => Scale.Minor }
 
-  def note: Parser[Note] = A ||| B ||| C ||| D ||| E ||| F ||| G
-  def scale: Parser[Scale] = min ||| maj
-  def accidental: Parser[Accidental] = sharp ||| flat ||| noAcc
+  val sharp: Parser[Accidental] = s"(${Accidental.Sharp.encoding})".r.map { _ => Accidental.Sharp }
+  val flat: Parser[Accidental] = s"(${Accidental.Flat.encoding})".r.map { _ => Accidental.Flat }
+  val noAcc: Parser[Accidental] = "".r.map { _ => Accidental.None }
 
-  def key: Parser[Key] = for {
-    note <- note
-    acc <- accidental
+  val note: Parser[Note] = A ||| B ||| C ||| D ||| E ||| F ||| G
+  val scale: Parser[Scale] = min ||| maj
+  val accidental: Parser[Accidental] = sharp ||| flat ||| noAcc
+
+  val key: Parser[Key] = for {
+    _     <- emptyString.*
+    note  <- note
+    _     <- emptyString.*
+    acc   <- accidental
+    _     <- emptyString.*
     scale <- scale
   } yield Key(note, acc, scale)
 
@@ -79,8 +84,5 @@ object KeyParser extends RegexParsers {
     case Error(msg, _) => ParsingResult.Failure(msg)
     case Failure(msg, _) => ParsingResult.Failure(msg)
   }
-  
-  def parserFrom[A](parser: Parser[A]): String => ParsingResult[A] = input => run(parser, input)
-  
   private def noteParser(note: Note): Parser[Note] = s"[${note.encoding}]".r.map { _ => note }
 }
