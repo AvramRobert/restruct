@@ -1,26 +1,9 @@
-import ParsingResult.Failure
+package parser
 
+import parser.KeyParser.parse
+import parser.ParsingResult.Failure
 import scala.annotation.tailrec
 import scala.util.parsing.combinator.*
-
-enum ParsingResult[+A]:
-  case Success(result: A) extends ParsingResult[A]
-  case Failure(message: String) extends ParsingResult[Nothing]
-
-extension [A] (result: ParsingResult[A])
-  def isFailure: Boolean = result match {
-    case Failure(_) => true
-    case _ => false
-  }
-  def isSuccess: Boolean = !isFailure
-  def failure: Option[String] = result match {
-    case Failure(msg) => Some(msg)
-    case _ => None
-  }
-  def success: Option[A] = result match {
-    case ParsingResult.Success(result) => Some(result)
-    case _ => None
-  }
 
 enum Note(val encoding: String):
   case A extends Note("A")

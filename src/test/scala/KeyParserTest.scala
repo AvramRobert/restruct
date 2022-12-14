@@ -1,4 +1,7 @@
-import scala.util.parsing.combinator._
+import parser.{Key, Note, Scale, Accidental, KeyParser}
+
+import parser.*
+import scala.util.parsing.combinator.*
 class KeyParserTest extends munit.FunSuite {
   test("Can parse notes") {
     testParser(
