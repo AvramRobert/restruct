@@ -1,22 +1,22 @@
-import parser.{FileData, Parser}
+import parser.{FileMetadata, Parsing}
 
 import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import java.io.File
 import scala.annotation.tailrec
 import scala.util.chaining.*
 import scala.util.parsing.combinator.RegexParsers
-import parser.*
+import parser.{given, *}
 
 @main def main: Unit = list("path")
   .pipe(dissect)
   .pipe(restructure)
 
-case class FileEntry(file: File, fileData: FileData)
+case class FileEntry(file: File, fileData: FileMetadata)
 
 def restructure(files: List[FileEntry]): Unit =
   files
     .foreach { entry =>
-      val dir: Path = Paths.get(entry.fileData.key.encoding, entry.fileData.tempo.encoding)
+      val dir: Path = Paths.get(encode(entry.fileData.key), encode(entry.fileData.tempo))
       val newFilePath = dir.resolve(s"${entry.fileData.title} - ${entry.fileData.tempo.bpm}")
       dir.toFile.mkdirs()
       Files.copy(entry.file.toPath, newFilePath, StandardCopyOption.REPLACE_EXISTING)
@@ -24,8 +24,8 @@ def restructure(files: List[FileEntry]): Unit =
 
 def dissect(files: List[File]): List[FileEntry] =
   files
-    .map { file => Parser
-      .run(Parser.fileName, file.getName)
+    .map { file => Parsing
+      .run(Parsing.fileName, file.getName)
       .map { data => FileEntry(file, data) }
     }
     .filter { value => value.isSuccess }

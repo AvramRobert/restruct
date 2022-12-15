@@ -1,8 +1,6 @@
 package parser
 
 import parser.*
-import parser.ParsedElem.TypedElem
-import parser.Token.TypedToken
 
 import scala.util.parsing.combinator.*
 class ParserTest extends munit.FunSuite {
@@ -14,7 +12,7 @@ class ParserTest extends munit.FunSuite {
         "     this is a complete sentence25" -> "this is a complete sentence",
         "    i can have blanks anywhere    24" -> "i can have blanks anywhere"
       ),
-      parser = Parser.until(Parser.number)
+      parser = Parsing.until(Parsing.number)
     )
   }
 
@@ -29,7 +27,7 @@ class ParserTest extends munit.FunSuite {
         "F" -> Note.F,
         "G" -> Note.G
       ),
-      parser = Parser.note
+      parser = Parsing.note
     )
   }
 
@@ -40,7 +38,7 @@ class ParserTest extends munit.FunSuite {
         "maj" -> Scale.Major,
         "" -> Scale.Major
       ),
-      parser = Parser.scale
+      parser = Parsing.scale
     )
   }
 
@@ -51,44 +49,44 @@ class ParserTest extends munit.FunSuite {
         "♭" -> Accidental.Flat,
         "" -> Accidental.None
       ),
-      parser = Parser.accidental
+      parser = Parsing.accidental
     )
   }
 
   test("Can parse keys") {
     val singular = Map(
-      "A" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "A   " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "    A" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "   A   " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "A" -> KeyMetadata(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "A   " -> KeyMetadata(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "    A" -> KeyMetadata(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "   A   " -> KeyMetadata(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
     )
     val scaled = Map(
-      "AMin" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Minor),
-      "Amaj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "Amaj    " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "    Amaj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "  A Maj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "A maj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "AMin" -> KeyMetadata(note = Note.A, accidental = Accidental.None, scale = Scale.Minor),
+      "Amaj" -> KeyMetadata(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "Amaj    " -> KeyMetadata(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "    Amaj" -> KeyMetadata(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "  A Maj" -> KeyMetadata(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "A maj" -> KeyMetadata(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
     )
     val accidentalSingular = Map(
-      "A#" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-      "   A#" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-      "A#    " -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-      "   A#    " -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "A#" -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "   A#" -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "A#    " -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "   A#    " -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
     )
 
     val accidentalScaled = Map(
-      "A#maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-      "  A#maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-      "A#maj     " -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-      "A# maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-      "  A# maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-      "A # maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
-      "  A # maj" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major)
+      "A#maj" -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "  A#maj" -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "A#maj     " -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "A# maj" -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "  A# maj" -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "A # maj" -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
+      "  A # maj" -> KeyMetadata(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major)
     )
     testParser(
       data = singular ++ scaled ++ accidentalSingular ++ accidentalScaled,
-      parser = Parser.key
+      parser = Parsing.key
     )
   }
 
@@ -100,7 +98,7 @@ class ParserTest extends munit.FunSuite {
         "bpm    " -> "bpm",
         "   bpm   " -> "bpm"
       ),
-      parser = Parser.bpm
+      parser = Parsing.bpm
     )
   }
 
@@ -112,77 +110,64 @@ class ParserTest extends munit.FunSuite {
         "602" -> 602,
         "1052" -> 1052
       ),
-      parser = Parser.number
+      parser = Parsing.number
     )
   }
 
   test("Can parse tempo") {
     testParser(
       data = Map(
-        "120bpm" -> Tempo(120),
-        "   120bpm" -> Tempo(120),
-        "120bpm    " -> Tempo(120),
-        "   120bpm" -> Tempo(120),
-        "120    bpm" -> Tempo(120),
-        "    120    bpm" -> Tempo(120),
-        "120    bpm    " -> Tempo(120),
-        "   120    bpm   " -> Tempo(120)
+        "120bpm" -> TempoMetadata(120),
+        "   120bpm" -> TempoMetadata(120),
+        "120bpm    " -> TempoMetadata(120),
+        "   120bpm" -> TempoMetadata(120),
+        "120    bpm" -> TempoMetadata(120),
+        "    120    bpm" -> TempoMetadata(120),
+        "120    bpm    " -> TempoMetadata(120),
+        "   120    bpm   " -> TempoMetadata(120)
       ),
-      parser = Parser.tempo
+      parser = Parsing.tempo
     )
   }
 
   test("can parse file names") {
     testParser(
       data = Map(
-        "file-name E maj 125 bpm" -> FileData(title = "file-name", key = Key(Note.E, Accidental.None, Scale.Major), Tempo(125))
+        "file-name E maj 125 bpm" -> FileMetadata(title = TitleMetadata("file-name"), key = KeyMetadata(Note.E, Accidental.None, Scale.Major), TempoMetadata(125))
       ),
-      parser = Parser.fileName
+      parser = Parsing.fileName
     )
   }
 
-  test("Can parse grammar rules") {
+  test("Can parse a list of rules (grammar)") {
     testParser(
       data = Map(
-        "%title%" -> Rule.TitleRule,
-        "%key%" -> Rule.KeyRule,
-        "%tempo%" -> Rule.TempoRule
+        "%tempo% %title% %key%" -> List(
+          Rule.ParsingRule(Token.Tempo, Parsing.tempo),
+          Rule.ParsingRule(Token.Title, Parsing.title),
+          Rule.ParsingRule(Token.Key, Parsing.key)
+        )
       ),
-      parser = Parser.rule
+      parser = Parsing.grammar
     )
   }
 
-  test("Can parse a file name grammar") {
+  test("Can parse input based on dynamic grammar") {
+    val grammar = Parsing.run(Parsing.grammar, "%tempo% %title% %key%").success.get
     testParser(
       data = Map(
-        "%tempo% %title% %title% %key%" -> List(Rule.TempoRule, Rule.TitleRule, Rule.TitleRule, Rule.KeyRule)
+        "86bpm my world is yours C#maj" -> List(
+          Emission.ParsingEmission(Token.Tempo, TempoMetadata(86)),
+          Emission.ParsingEmission(Token.Title, TitleMetadata("my world is yours")),
+          Emission.ParsingEmission(Token.Key, KeyMetadata(Note.C, Accidental.Sharp, Scale.Major)))
       ),
-      parser = Parser.grammar
+      parser = Parsing.fromGrammar(grammar)
     )
   }
 
-  test("Can parse a typed grammar") {
-    testParser(
-      data = Map(
-        "%tempo% %title% %key%" -> List(TypedToken(GrammarRef.TempoRef), TypedToken(GrammarRef.TitleRef), TypedToken(GrammarRef.KeyRef))
-      ),
-      parser = Parser.tokens
-    )
-  }
-
-  test("Can parse a based on dynamic grammar") {
-    val tokens = Parser.run(Parser.tokens, "%tempo% %title% %key%").success.get
-    testParser(
-      data = Map(
-        "86bpm my world is yours C#maj" -> List(TypedElem(Tempo(86)), TypedElem("my world is yours"), TypedElem(Key(Note.C, Accidental.Sharp, Scale.Major)))
-      ),
-      parser = Parser.grammarParser(tokens)
-    )
-  }
-
-  private def testParser[A](data: Map[String, A], parser: Parser.Parser[A]): Unit = {
+  private def testParser[A](data: Map[String, A], parser: Parsing.Parser[A]): Unit = {
     val actual = data
-      .map { case (input, expected) => Parser.run(parser, input) -> expected }
+      .map { case (input, expected) => Parsing.run(parser, input) -> expected }
 
     val failed =
       actual
