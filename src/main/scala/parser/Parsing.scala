@@ -1,6 +1,7 @@
 package parser
 import parser.ParsingResult.Failure
-
+import java.io.File
+import java.nio.file.Path
 import scala.annotation.tailrec
 import scala.util.parsing.combinator.*
 
@@ -9,6 +10,8 @@ object Parsing extends RegexParsers {
 
   private val delimiters = Set(' ', '-', '_')
   private def asRule[A](token: Token[A], parser: Parser[A]): Rule = Rule.ParsingRule(token, parser)
+  private def literalIf(p: Elem => Boolean): Parser[String] = acceptIf(p)(_.toString).*.map(_.mkString(""))
+  private def noteParser(note: Note): Parser[Note] = literal(note.encoding).map { _ => note }
   private def tokenParser[A](t: Token[A]): Parser[Token[A]] = for {
     _ <- whiteSpace.*
     _ <- lt
@@ -17,7 +20,6 @@ object Parsing extends RegexParsers {
     _ <- whiteSpace.*
     _ <- gt
   } yield t
-  private def noteParser(note: Note): Parser[Note] = literal(note.encoding).map { _ => note }
 
   def fromGrammar(grammar: List[Rule]): Parser[List[Metadata]] = Parser { input =>
     @tailrec
@@ -34,6 +36,10 @@ object Parsing extends RegexParsers {
   }
 
   private def anyCase(value: String): Parser[String] = s"(?i)($value)".r
+
+  val any: Parser[String] = ".".r
+
+  val tick: Parser[String] = literal("`")
 
   val lt: Parser[String] = literal("<")
 
@@ -83,9 +89,8 @@ object Parsing extends RegexParsers {
 
   val label: Parser[LabelMetadata] = for {
     _           <- whiteSpace.*
-    notDelimiter = (c: Char) => !delimiters.contains(c)
-    chars       <- acceptIf(notDelimiter)(_.toString).*
-  } yield LabelMetadata(chars.mkString(""))
+    label       <- literalIf { c => !delimiters.contains(c) }
+  } yield LabelMetadata(label)
 
   val makerToken: Parser[Token[LabelMetadata]] = tokenParser(Token.Maker)
   val nameToken: Parser[Token[LabelMetadata]] = tokenParser(Token.Name)
@@ -99,6 +104,37 @@ object Parsing extends RegexParsers {
       tempoToken.map { token => asRule(token, tempo) }
 
   val grammar: Parser[List[Rule]] = rule.*
+
+  private val escapedFolder: Parser[String] = for {
+    _       <- tick
+    content <- literalIf { _ != '`' }
+    _       <- tick
+  } yield s"`$content`"
+
+  private def subFolder: Parser[String] = for {
+    right <- literalIf { c => c != '`' && c != ' ' }
+    middle <- escapedFolder.?
+    left <- middle match {
+      case Some(p) => subFolder.map { r => p + r }
+      case None => success("")
+    }
+  } yield right + left
+
+  val pathArg: Parser[Path] = for {
+     _     <- literal("--path=")
+     path <- subFolder
+  } yield File(path.mkString("")).toPath
+
+  val grammarArg: Parser[List[Rule]] = for {
+    _       <- literal("--pattern=")
+    rules   <- grammar
+  } yield rules
+
+  val cliArguments: Parser[CliArguments] = for {
+    path    <- pathArg
+    _       <- whiteSpace.*
+    grammar <- grammarArg
+  } yield CliArguments(path, grammar)
 
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
     case Success(result, _) => ParsingResult.Success(result)

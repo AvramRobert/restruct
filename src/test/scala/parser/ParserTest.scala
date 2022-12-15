@@ -1,6 +1,7 @@
 package parser
 
 import parser.*
+import java.io.File
 
 import scala.util.parsing.combinator.*
 class ParserTest extends munit.FunSuite {
@@ -157,6 +158,46 @@ class ParserTest extends munit.FunSuite {
           Metadata.ParsingMetadata(Token.Key, KeyMetadata(Note.C, Accidental.Sharp, Scale.Major)))
       ),
       parser = Parsing.fromGrammar(grammar)
+    )
+  }
+
+
+  test("Can parse path arguments") {
+    testParser(
+      data = Map(
+        "--path=/home/my.self/this" -> File("/home/my.self/this").toPath,
+        "--path=/home/`this is a path with spaces`/what" -> File("/home/`this is a path with spaces`/what").toPath,
+        "--path=/`start here`/`because it's`/as.easy/as/`you'd like`" -> File("/`start here`/`because it's`/as.easy/as/`you'd like`").toPath,
+        "--path=this/should/`stop after`/this hello" -> File("this/should/`stop after`/this").toPath
+
+      ),
+      parser = Parsing.pathArg
+    )
+  }
+
+  test("Can parse pattern arguments") {
+    testParser(
+      data = Map(
+        "--pattern=<maker> <name> <key> <tempo>" -> List(
+          Rule.ParsingRule(Token.Maker, Parsing.label),
+          Rule.ParsingRule(Token.Name, Parsing.label),
+          Rule.ParsingRule(Token.Key, Parsing.key),
+          Rule.ParsingRule(Token.Tempo, Parsing.tempo)
+        )
+      ),
+      parser = Parsing.grammarArg
+    )
+  }
+
+  test("Can parse cli arguments") {
+    testParser(
+      data = Map(
+        "--path=C:/this/is/some/path --pattern=<name> <key>" -> CliArguments(
+          path = File("C:/this/is/some/path").toPath,
+          grammar = List(Rule.ParsingRule(Token.Name, Parsing.label), Rule.ParsingRule(Token.Key, Parsing.key))
+        )
+      ),
+      parser = Parsing.cliArguments
     )
   }
 
