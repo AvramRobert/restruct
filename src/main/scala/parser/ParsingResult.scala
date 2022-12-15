@@ -5,8 +5,10 @@ enum ParsingResult[+A]:
   case Failure(message: String) extends ParsingResult[Nothing]
 
 extension [A] (result: ParsingResult[A])
-  def map[B](f: A => B): ParsingResult[B] = result match {
-    case ParsingResult.Success(result) => ParsingResult.Success(f(result))
+  def map[B](f: A => B): ParsingResult[B] = flatMap(a => ParsingResult.Success(f(a)))
+
+  def flatMap[B](f: A => ParsingResult[B]): ParsingResult[B] = result match {
+    case ParsingResult.Success(result) => f(result)
     case ParsingResult.Failure(msg) => ParsingResult.Failure(msg)
   }
   

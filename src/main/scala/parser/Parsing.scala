@@ -45,6 +45,8 @@ object Parsing extends RegexParsers {
 
   val gt: Parser[String] = literal(">")
 
+  def arg(argument: Argument): Parser[String] = literal(s"--${argument.ref}=")
+  
   val number: Parser[Long] = s"[0-9]*".r.flatMap { s =>
     if(s.isBlank) failure("Number regex read nothing. Input did not start with digits.")
     else success(s.toLong)
@@ -121,19 +123,19 @@ object Parsing extends RegexParsers {
   } yield right + left
 
   val pathArg: Parser[Path] = for {
-     _     <- literal("--path=")
+     _     <- arg(Argument.Path)
      path <- subFolder
   } yield File(path.mkString("")).toPath
 
   val grammarArg: Parser[List[Rule]] = for {
-    _       <- literal("--pattern=")
+    _       <- arg(Argument.Pattern)
     rules   <- grammar
   } yield rules
 
   val cliArguments: Parser[CliArguments] = for {
-    path    <- pathArg
-    _       <- whiteSpace.*
     grammar <- grammarArg
+    _       <- whiteSpace.*
+    path    <- pathArg
   } yield CliArguments(path, grammar)
 
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
