@@ -22,9 +22,7 @@ case class KeyMetadata(note: Note, accidental: Accidental, scale: Scale)
 
 case class TempoMetadata(bpm: Long)
 
-case class TitleMetadata(val label: String)
-
-case class FileMetadata(title: TitleMetadata, key: KeyMetadata, tempo: TempoMetadata)
+case class LabelMetadata(label: String)
 
 given Encoding[Note] with
   def encode(note: Note): String = note.encoding
@@ -43,5 +41,5 @@ given Encoding[KeyMetadata] with
 given Encoding[TempoMetadata] with
   def encode(tempo: TempoMetadata): String = s"${tempo.bpm.toFloat.floor.toLong}s bpm"
   
-given Encoding[TitleMetadata] with
-  def encode(title: TitleMetadata): String = title.label
+given Encoding[LabelMetadata] with
+  def encode(title: LabelMetadata): String = title.label

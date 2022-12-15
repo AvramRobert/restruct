@@ -1,59 +1,48 @@
 package parser
-import parser.Emission.ParsingEmission
 import parser.ParsingResult.Failure
 
 import scala.annotation.tailrec
 import scala.util.parsing.combinator.*
 
 object Parsing extends RegexParsers {
+  override def skipWhitespace: Boolean = false
+
+  private val delimiters = Set(' ', '-', '_')
   private def asRule[A](token: Token[A], parser: Parser[A]): Rule = Rule.ParsingRule(token, parser)
-  private def noteParser(note: Note): Parser[Note] = s"[${note.encoding}]".r.map { _ => note }
+  private def tokenParser[A](t: Token[A]): Parser[Token[A]] = for {
+    _ <- whiteSpace.*
+    _ <- lt
+    _ <- whiteSpace.*
+    _ <- anyCase(t.ref)
+    _ <- whiteSpace.*
+    _ <- gt
+  } yield t
+  private def noteParser(note: Note): Parser[Note] = literal(note.encoding).map { _ => note }
 
-  def until[A](p: Parser[A]): Parser[String] = Parser { input =>
-    val start = input.pos.column - 1
-
+  def fromGrammar(grammar: List[Rule]): Parser[List[Metadata]] = Parser { input =>
     @tailrec
-    def consume(in: Input, offset: Int = start): ParseResult[String] = {
-      p(in) match {
-        case Failure(_, _) => consume(in.rest, offset + 1)
-        case Error(_, _) => consume(in.rest, offset + 1)
-        case Success(_, _) => Success(input.source.subSequence(start, offset).toString.trim, in)
-      }
-    }
-
-    consume(input)
-  }
-
-  def fromGrammar(grammar: Grammar): Parser[Output] = Parser { input =>
-    @tailrec
-    def unravel(rules: Grammar, emissions: Output = List.empty, rem: Input = input): ParseResult[Output] = rules match {
+    def unravel(rules: List[Rule], data: List[Metadata] = List.empty, rem: Input = input): ParseResult[List[Metadata]] = rules match {
       case Rule.ParsingRule(token, parser) :: ts => parser(rem) match {
-        case Success(result, next) => unravel(ts, Emission.ParsingEmission(token, result) +: emissions, next)
-        case Error(msg, next) => Error(msg, next)
-        case Failure(msg, next) => Failure(msg, next)
+        case Success(result, next) => unravel(ts, Metadata.ParsingMetadata(token, result) +: data, next)
+        case Error(msg, next)      => Error(msg, next)
+        case Failure(msg, next)    => Failure(msg, next)
       }
-      case Nil => Success(emissions.reverse, rem)
+      case Nil => Success(data.reverse, rem)
     }
 
     unravel(grammar)
   }
 
-  def anyCase(value: String): Parser[String] = s"(?i)($value)".r
+  private def anyCase(value: String): Parser[String] = s"(?i)($value)".r
 
-  val percent: Parser[Char] = s"(\\%)".r.map { c => c.head }
+  val lt: Parser[String] = literal("<")
 
-  val blank: Parser[Unit] = " ".r.map { _ => () }
+  val gt: Parser[String] = literal(">")
 
   val number: Parser[Long] = s"[0-9]*".r.flatMap { s =>
     if(s.isBlank) failure("Number regex read nothing. Input did not start with digits.")
     else success(s.toLong)
   }
-
-  def token(ref: String): Parser[String] = for {
-    _ <- percent
-    r <- anyCase(ref)
-    _ <- percent
-  } yield r
 
   val A: Parser[Note] = noteParser(Note.A)
   val B: Parser[Note] = noteParser(Note.B)
@@ -74,48 +63,43 @@ object Parsing extends RegexParsers {
   val scale: Parser[Scale] = min ||| maj
   val accidental: Parser[Accidental] = sharp ||| flat ||| noAcc
 
-  val bpm: Parser[String] = anyCase("bpm")
+  val bpm: Parser[String] = whiteSpace.* ~> anyCase("bpm")
 
   val key: Parser[KeyMetadata] = for {
-    _     <- blank.*
+    _     <- whiteSpace.*
     note  <- note
-    _     <- blank.*
+    _     <- whiteSpace.*
     acc   <- accidental
-    _     <- blank.*
+    _     <- whiteSpace.*
     scale <- scale
   } yield KeyMetadata(note, acc, scale)
 
   val tempo: Parser[TempoMetadata] = for {
-    _   <- blank.*
+    _   <- whiteSpace.*
     num <- number
-    _   <- blank.*
+    _   <- whiteSpace.*
     _   <- bpm
   } yield TempoMetadata(num)
 
-  val title: Parser[TitleMetadata] = for {
-    _     <- blank.*
-    label <- until(key)
-  } yield TitleMetadata(label)
+  val label: Parser[LabelMetadata] = for {
+    _           <- whiteSpace.*
+    notDelimiter = (c: Char) => !delimiters.contains(c)
+    chars       <- acceptIf(notDelimiter)(_.toString).*
+  } yield LabelMetadata(chars.mkString(""))
 
-  val fileName: Parser[FileMetadata] = for {
-    title <- title
-    key   <- key
-    tempo <- tempo
-  } yield FileMetadata(title, key, tempo)
-
-  val titleToken: Parser[Token[TitleMetadata]] = token(Token.Title.ref).map { _ => Token.Title }
-
-  val keyToken: Parser[Token[KeyMetadata]] = token(Token.Key.ref).map { _ => Token.Key }
-
-  val tempoToken: Parser[Token[TempoMetadata]] = token(Token.Tempo.ref).map { _ => Token.Tempo }
+  val makerToken: Parser[Token[LabelMetadata]] = tokenParser(Token.Maker)
+  val nameToken: Parser[Token[LabelMetadata]] = tokenParser(Token.Name)
+  val keyToken: Parser[Token[KeyMetadata]] = tokenParser(Token.Key)
+  val tempoToken: Parser[Token[TempoMetadata]] = tokenParser(Token.Tempo)
 
   val rule: Parser[Rule] =
-    titleToken.map { token => asRule(token, title) } |||
+      makerToken.map { token => asRule(token, label) } |||
+      nameToken.map { token => asRule(token, label) } |||
       keyToken.map { token => asRule(token, key) } |||
       tempoToken.map { token => asRule(token, tempo) }
 
-  val grammar: Parser[Grammar] = rule.*
-  
+  val grammar: Parser[List[Rule]] = rule.*
+
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
     case Success(result, _) => ParsingResult.Success(result)
     case Error(msg, _) => ParsingResult.Failure(msg)

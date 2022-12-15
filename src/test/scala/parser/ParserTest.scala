@@ -5,17 +5,6 @@ import parser.*
 import scala.util.parsing.combinator.*
 class ParserTest extends munit.FunSuite {
 
-  test("Parses until another parser is successful") {
-    testParser(
-      data = Map(
-        "hello   1" -> "hello",
-        "     this is a complete sentence25" -> "this is a complete sentence",
-        "    i can have blanks anywhere    24" -> "i can have blanks anywhere"
-      ),
-      parser = Parsing.until(Parsing.number)
-    )
-  }
-
   test("Can parse notes") {
     testParser(
       data = Map(
@@ -90,7 +79,7 @@ class ParserTest extends munit.FunSuite {
     )
   }
 
-  test("Can parse bpm") {
+  test("Can parse bpm literal") {
     testParser(
       data = Map(
         "bpm" -> "bpm",
@@ -130,21 +119,25 @@ class ParserTest extends munit.FunSuite {
     )
   }
 
-  test("can parse file names") {
+  test("can parse labels") {
     testParser(
       data = Map(
-        "file-name E maj 125 bpm" -> FileMetadata(title = TitleMetadata("file-name"), key = KeyMetadata(Note.E, Accidental.None, Scale.Major), TempoMetadata(125))
+        "first " -> LabelMetadata("first"),
+        "first-" -> LabelMetadata("first"),
+        "first_" -> LabelMetadata("first"),
+        " first " -> LabelMetadata("first")
       ),
-      parser = Parsing.fileName
+      parser = Parsing.label
     )
   }
 
   test("Can parse a list of rules (grammar)") {
     testParser(
       data = Map(
-        "%tempo% %title% %key%" -> List(
+        "<maker> <name> <tempo> <key>" -> List(
+          Rule.ParsingRule(Token.Maker, Parsing.label),
+          Rule.ParsingRule(Token.Name, Parsing.label),
           Rule.ParsingRule(Token.Tempo, Parsing.tempo),
-          Rule.ParsingRule(Token.Title, Parsing.title),
           Rule.ParsingRule(Token.Key, Parsing.key)
         )
       ),
@@ -153,13 +146,15 @@ class ParserTest extends munit.FunSuite {
   }
 
   test("Can parse input based on dynamic grammar") {
-    val grammar = Parsing.run(Parsing.grammar, "%tempo% %title% %key%").success.get
+    val grammar = Parsing.run(Parsing.grammar, "<tempo> <maker> <maker> <maker> <key>").success.get
     testParser(
       data = Map(
-        "86bpm my world is yours C#maj" -> List(
-          Emission.ParsingEmission(Token.Tempo, TempoMetadata(86)),
-          Emission.ParsingEmission(Token.Title, TitleMetadata("my world is yours")),
-          Emission.ParsingEmission(Token.Key, KeyMetadata(Note.C, Accidental.Sharp, Scale.Major)))
+        "86bpm brave new world C#maj" -> List(
+          Metadata.ParsingMetadata(Token.Tempo, TempoMetadata(86)),
+          Metadata.ParsingMetadata(Token.Maker, LabelMetadata("brave")),
+          Metadata.ParsingMetadata(Token.Maker, LabelMetadata("new")),
+          Metadata.ParsingMetadata(Token.Maker, LabelMetadata("world")),
+          Metadata.ParsingMetadata(Token.Key, KeyMetadata(Note.C, Accidental.Sharp, Scale.Major)))
       ),
       parser = Parsing.fromGrammar(grammar)
     )
