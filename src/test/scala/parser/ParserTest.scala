@@ -1,6 +1,8 @@
 package parser
 
 import parser.*
+import parser.ParsedElem.TypedElem
+import parser.Token.TypedToken
 
 import scala.util.parsing.combinator.*
 class ParserTest extends munit.FunSuite {
@@ -156,6 +158,25 @@ class ParserTest extends munit.FunSuite {
         "%tempo% %title% %title% %key%" -> List(Rule.TempoRule, Rule.TitleRule, Rule.TitleRule, Rule.KeyRule)
       ),
       parser = Parser.grammar
+    )
+  }
+
+  test("Can parse a typed grammar") {
+    testParser(
+      data = Map(
+        "%tempo% %title% %key%" -> List(TypedToken(GrammarRef.TempoRef), TypedToken(GrammarRef.TitleRef), TypedToken(GrammarRef.KeyRef))
+      ),
+      parser = Parser.tokens
+    )
+  }
+
+  test("Can parse a based on dynamic grammar") {
+    val tokens = Parser.run(Parser.tokens, "%tempo% %title% %key%").success.get
+    testParser(
+      data = Map(
+        "86bpm my world is yours C#maj" -> List(TypedElem(Tempo(86)), TypedElem("my world is yours"), TypedElem(Key(Note.C, Accidental.Sharp, Scale.Major)))
+      ),
+      parser = Parser.grammarParser(tokens)
     )
   }
 

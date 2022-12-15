@@ -1,10 +1,24 @@
 package parser
 
+import parser.GrammarRef.TitleRef
+import parser.ParsedElem.TypedElem
 import parser.ParsingResult.Failure
 import parser.Rule.TitleRule
+import parser.Token.TypedToken
 
 import scala.annotation.tailrec
 import scala.util.parsing.combinator.*
+
+enum Token:
+  case TypedToken[A](val ref: GrammarRef[A]) extends Token
+
+enum ParsedElem:
+  case TypedElem[A](val elem: A) extends ParsedElem
+
+enum GrammarRef[A](val ref: String):
+  case TitleRef extends GrammarRef[String]("title")
+  case KeyRef extends GrammarRef[Key]("key")
+  case TempoRef extends GrammarRef[Tempo]("tempo")
 
 enum Rule(val reference: String):
   case TitleRule extends Rule("title")
@@ -128,9 +142,44 @@ object Parser extends RegexParsers {
   val keyRule: Parser[Rule] = grammarToken(Rule.KeyRule.reference).map { _ => Rule.KeyRule }
   val tempoRule: Parser[Rule] = grammarToken(Rule.TempoRule.reference).map { _ => Rule.TempoRule }
 
+  val titleRef: Parser[GrammarRef[String]] = grammarToken(GrammarRef.TitleRef.ref).map { _ => GrammarRef.TitleRef  }
+  val keyRef: Parser[GrammarRef[Key]] = grammarToken(GrammarRef.KeyRef.ref).map { _ => GrammarRef.KeyRef }
+  val tempoRef: Parser[GrammarRef[Tempo]] = grammarToken(GrammarRef.TempoRef.ref).map { _ => GrammarRef.TempoRef }
+
+  def tokenise[A](r: GrammarRef[A]): Token = TypedToken(r)
+
+  val token: Parser[Token] = titleRef.map(tokenise) ||| keyRef.map(tokenise) ||| tempoRef.map(tokenise)
+
   val rule: Parser[Rule] = titleRule ||| keyRule ||| tempoRule
 
   val grammar: Parser[List[Rule]] = rule.*
+
+  val tokens: Parser[List[Token]] = token.*
+
+  def grammarParser(tokens: List[Token]): Parser[List[ParsedElem]] = Parser { input =>
+    @tailrec
+    def unravel(tokens: List[Token], elems: List[ParsedElem] = List.empty, rem: Input = input): ParseResult[List[ParsedElem]] = tokens match {
+      case TypedToken(GrammarRef.TitleRef) :: ts => title(rem) match {
+        case Success(result, next) => unravel(ts, TypedElem(result) +: elems, next)
+        case Error(msg, next)      => Error(msg, next)
+        case Failure(msg, next)    => Failure(msg, next)
+      }
+      case TypedToken(GrammarRef.KeyRef) :: ts => key(rem) match {
+        case Success(result, next) => unravel(ts, TypedElem(result) +: elems, next)
+        case Error(msg, next) => Error(msg, next)
+        case Failure(msg, next) => Failure(msg, next)
+      }
+
+      case TypedToken(GrammarRef.TempoRef) :: ts => tempo(rem) match {
+        case Success(result, next) => unravel(ts, TypedElem(result) +: elems, next)
+        case Error(msg, next) => Error(msg, next)
+        case Failure(msg, next) => Failure(msg, next)
+      }
+      case Nil                        => Success(elems.reverse, rem)
+    }
+
+    unravel(tokens)
+  }
 
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
     case Success(result, _) => ParsingResult.Success(result)
