@@ -4,7 +4,7 @@ import java.io.File
 
 case class FileSystem(files: List[File], dirs: List[File])
 
-val tempTestDir = File("target")
+val tempTestDir = File("target/test")
 
 def inFileSystem[A](fileSystem: FileSystem, where: File = tempTestDir)(f: () => A): Unit = {
   where.mkdirs()
