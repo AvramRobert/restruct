@@ -1,8 +1,6 @@
-package parser
-
 import parser.*
-import java.io.File
 
+import java.io.File
 import scala.util.parsing.combinator.*
 class ParserTest extends munit.FunSuite {
 
@@ -192,7 +190,7 @@ class ParserTest extends munit.FunSuite {
   test("Can parse cli arguments") {
     testParser(
       data = Map(
-        "--path=C:/this/is/some/path --pattern=<name> <key>" -> CliArguments(
+        "--pattern=<name> <key> --path=C:/this/is/some/path" -> CliArguments(
           path = File("C:/this/is/some/path").toPath,
           grammar = List(Rule.ParsingRule(Token.Name, Parsing.label), Rule.ParsingRule(Token.Key, Parsing.key))
         )

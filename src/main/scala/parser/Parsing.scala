@@ -132,6 +132,7 @@ object Parsing extends RegexParsers {
     rules   <- grammar
   } yield rules
 
+  // The arguments have to be sorted when read
   val cliArguments: Parser[CliArguments] = for {
     grammar <- grammarArg
     _       <- whiteSpace.*
