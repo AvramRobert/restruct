@@ -14,7 +14,7 @@ object Main {
     Parsing
       .run(Parsing.cliArguments, input)
       .map { args =>
-        list(args.path)
+        list(args.path.toFile)
           .pipe { files => derive(files, args) }
       }
   }
@@ -36,7 +36,7 @@ def derive(files: List[File], args: CliArguments): Option[List[FileMetadata]] = 
   acc(files)
 }
 
-def list(path: Path): List[File] = {
+def list(dir: File): List[File] = {
   @tailrec
   def recurse(dirs: List[File], files: List[File] = List.empty): List[File] = dirs match {
     case dir :: dirs if dir.isFile => recurse(dirs, dir +: files)
@@ -44,7 +44,6 @@ def list(path: Path): List[File] = {
     case Nil => files
   }
 
-  val file = path.toFile
-  if (file.isFile) List(file)
-  else recurse(file.listFiles().toList)
+  if (dir.isFile) List(dir)
+  else recurse(dir.listFiles().toList)
 }
