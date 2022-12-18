@@ -5,7 +5,7 @@ import util.*
 
 class FileResolutionTest extends munit.FunSuite {
 
-  test("Recurses through repositories and retreives files") {
+  test("Recurses through repositories and retrieves files") {
     val fs = fileSystem(
       "/first/first-1/first-1-1/file-1-1-a",
       "/first/first-1/first-1-1/file-1-1-b",
@@ -19,7 +19,7 @@ class FileResolutionTest extends munit.FunSuite {
       "/second/file-a")
 
     inFileSystem(fileSystem = fs, where = tempTestDir) { () =>
-      assertEquals(list(tempTestDir.toPath), fs.files)
+      assertEquals(list(tempTestDir.toPath).toSet, fs.files.map(tempTestDir.asParent).toSet)
     }
   }
 
