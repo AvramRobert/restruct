@@ -6,6 +6,7 @@ import scala.annotation.tailrec
 import scala.util.chaining.*
 import scala.util.parsing.combinator.RegexParsers
 import parser.{given, *}
+import filesystem.*
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -14,15 +15,15 @@ object Main {
     Parsing
       .run(Parsing.cliArguments, input)
       .map { args =>
-        list(args.path.toFile)
-          .pipe { files => derive(files, args) }
+        listFiles(args.path.toFile)
+          .pipe { fsd => derive(fsd.files, args) }
       }
   }
 }
 case class FileMetadata(file: File, metadata: List[Metadata])
 
 def derive(files: List[File], args: CliArguments): Option[List[FileMetadata]] = {
-  val parser = Parsing.fromGrammar(args.grammar)
+  val parser = Parsing.fromGrammar(args.filePattern)
 
   @tailrec
   def acc(files: List[File], result: List[FileMetadata] = List.empty): Option[List[FileMetadata]] = files match {
@@ -34,16 +35,4 @@ def derive(files: List[File], args: CliArguments): Option[List[FileMetadata]] = 
   }
 
   acc(files)
-}
-
-def list(dir: File): List[File] = {
-  @tailrec
-  def recurse(dirs: List[File], files: List[File] = List.empty): List[File] = dirs match {
-    case dir :: dirs if dir.isFile => recurse(dirs, dir +: files)
-    case dir :: dirs => recurse(dir.listFiles().toList ++ dirs, files)
-    case Nil => files
-  }
-
-  if (dir.isFile) List(dir)
-  else recurse(dir.listFiles().toList)
 }

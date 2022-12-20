@@ -1,9 +1,10 @@
 
 import java.io.File
 import java.nio.file.Path
+import filesystem.*
 import util.*
 
-class FileResolutionTest extends munit.FunSuite {
+class FileSystemTest extends munit.FunSuite {
 
   test("Recurses through repositories and retrieves files") {
     val first11Files = List(
@@ -43,25 +44,25 @@ class FileResolutionTest extends munit.FunSuite {
       secondFiles)
 
     inFileSystem(fileSystem = fs) { parent =>
-      val actualAll = list(parent)
+      val actualAll = listFiles(parent).files
       val expectedAll = fs.files.map(parent.asParent)
 
-      val actualFirst = list(parent.asParent("/first"))
+      val actualFirst = listFiles(parent.asParent("/first")).files
       val expectedFirst = (first11Files ++ first121Files ++ first122Files ++ first2Files ++ first31Files).map(parent.asParent)
 
-      val actualFirst1 = list(parent.asParent("/first/first-1"))
+      val actualFirst1 = listFiles(parent.asParent("/first/first-1")).files
       val expectedFirst1 = (first11Files ++ first121Files ++ first122Files).map(parent.asParent)
 
-      val actualFirst11 = list(parent.asParent("/first/first-1/first-1-1"))
+      val actualFirst11 = listFiles(parent.asParent("/first/first-1/first-1-1")).files
       val expectedFirst11 = first11Files.map(parent.asParent)
 
-      val actualFirst12 = list(parent.asParent("/first/first-1/first-1-2"))
+      val actualFirst12 = listFiles(parent.asParent("/first/first-1/first-1-2")).files
       val expectedFirst12 = (first121Files ++ first122Files).map(parent.asParent)
 
-      val actualFirst3 = list(parent.asParent("/first/first-3"))
+      val actualFirst3 = listFiles(parent.asParent("/first/first-3")).files
       val expectedFirst3 = first31Files.map(parent.asParent)
 
-      val actualSecond = list(parent.asParent("/second"))
+      val actualSecond = listFiles(parent.asParent("/second")).files
       val expectedSecond = secondFiles.map(parent.asParent)
 
       assertEquals(actualAll.toSet, expectedAll.toSet)

@@ -132,12 +132,19 @@ object Parsing extends RegexParsers {
     rules   <- grammar
   } yield rules
 
+  val renameArg: Parser[List[Rule]] = for {
+    _     <- arg(Argument.Rename)
+    rules <- grammar
+  } yield rules
+
   // The arguments have to be sorted when read
   val cliArguments: Parser[CliArguments] = for {
-    grammar <- grammarArg
+    pattern <- grammarArg
     _       <- whiteSpace.*
     path    <- pathArg
-  } yield CliArguments(path, grammar)
+    _       <- whiteSpace.*
+    rename  <- renameArg
+  } yield CliArguments(path, pattern, rename)
 
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
     case Success(result, _) => ParsingResult.Success(result)
