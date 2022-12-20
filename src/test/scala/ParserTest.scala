@@ -124,7 +124,8 @@ class ParserTest extends munit.FunSuite {
         "first " -> LabelMetadata("first"),
         "first-" -> LabelMetadata("first"),
         "first_" -> LabelMetadata("first"),
-        " first " -> LabelMetadata("first")
+        " first " -> LabelMetadata("first"),
+        "first/" -> LabelMetadata("first")
       ),
       parser = Parsing.label
     )
@@ -140,12 +141,12 @@ class ParserTest extends munit.FunSuite {
           Rule.ParsingRule(Token.Key, Parsing.key)
         )
       ),
-      parser = Parsing.grammar
+      parser = Parsing.pattern
     )
   }
 
-  test("Can parse input based on dynamic grammar") {
-    val grammar = Parsing.run(Parsing.grammar, "<tempo> <maker> <maker> <maker> <key>").success.get
+  test("Can parse input based on dynamic pattern") {
+    val grammar = Parsing.run(Parsing.pattern, "<tempo> <maker> <maker> <maker> <key>").success.get
     testParser(
       data = Map(
         "86bpm brave new world C#maj" -> List(
@@ -158,7 +159,6 @@ class ParserTest extends munit.FunSuite {
       parser = Parsing.fromGrammar(grammar)
     )
   }
-
 
   test("Can parse path arguments") {
     testParser(
@@ -183,11 +183,31 @@ class ParserTest extends munit.FunSuite {
           Rule.ParsingRule(Token.Tempo, Parsing.tempo)
         )
       ),
-      parser = Parsing.grammarArg
+      parser = Parsing.filePatternArg
     )
   }
 
-  test("Can parse file pattern arguments") {
+  test("Can parse dir structure arguments") {
+    testParser(
+      data = Map(
+        "--dir-structure=<maker>/<name>/<key>/<tempo>" -> List(
+          Rule.ParsingRule(Token.Maker, Parsing.label),
+          Rule.ParsingRule(Token.Name, Parsing.label),
+          Rule.ParsingRule(Token.Key, Parsing.key),
+          Rule.ParsingRule(Token.Tempo, Parsing.tempo)
+        ),
+        "--dir-structure=/<maker>/<name>/<key>/<tempo>" -> List(
+          Rule.ParsingRule(Token.Maker, Parsing.label),
+          Rule.ParsingRule(Token.Name, Parsing.label),
+          Rule.ParsingRule(Token.Key, Parsing.key),
+          Rule.ParsingRule(Token.Tempo, Parsing.tempo)
+        ),
+      ),
+      parser = Parsing.dirStructureArg
+    )
+  }
+
+  test("Can parse rename pattern arguments") {
     testParser(
       data = Map(
         "--rename-pattern=<maker> <name> <key> <tempo>" -> List(
@@ -197,16 +217,17 @@ class ParserTest extends munit.FunSuite {
           Rule.ParsingRule(Token.Tempo, Parsing.tempo)
         )
       ),
-      parser = Parsing.renameArg
+      parser = Parsing.renamePatternArg
     )
   }
 
   test("Can parse cli arguments") {
     testParser(
       data = Map(
-        "--file-pattern=<name> <key> --path=C:/this/is/some/path --rename-pattern=<key> <name>" -> CliArguments(
+        "--file-pattern=<name> <key> --path=C:/this/is/some/path --dir-structure=<name>/<key> --rename-pattern=<key> <name>" -> CliArguments(
           path = File("C:/this/is/some/path").toPath,
           filePattern = List(Rule.ParsingRule(Token.Name, Parsing.label), Rule.ParsingRule(Token.Key, Parsing.key)),
+          dirStructure = List(Rule.ParsingRule(Token.Name, Parsing.label), Rule.ParsingRule(Token.Key, Parsing.key)),
           renamePattern = List(Rule.ParsingRule(Token.Key, Parsing.key), Rule.ParsingRule(Token.Name, Parsing.label))
         )
       ),

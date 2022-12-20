@@ -8,7 +8,7 @@ import scala.util.parsing.combinator.*
 object Parsing extends RegexParsers {
   override def skipWhitespace: Boolean = false
 
-  private val delimiters = Set(' ', '-', '_')
+  private val delimiters = Set(' ', '-', '_', '/')
   private def asRule[A](token: Token[A], parser: Parser[A]): Rule = Rule.ParsingRule(token, parser)
   private def literalIf(p: Elem => Boolean): Parser[String] = acceptIf(p)(_.toString).*.map(_.mkString(""))
   private def noteParser(note: Note): Parser[Note] = literal(note.encoding).map { _ => note }
@@ -45,8 +45,10 @@ object Parsing extends RegexParsers {
 
   val gt: Parser[String] = literal(">")
 
+  val slash: Parser[String] = literal("/")
+
   def arg(argument: Argument): Parser[String] = literal(s"--${argument.ref}=")
-  
+
   val number: Parser[Long] = s"[0-9]*".r.flatMap { s =>
     if(s.isBlank) failure("Number regex read nothing. Input did not start with digits.")
     else success(s.toLong)
@@ -105,7 +107,10 @@ object Parsing extends RegexParsers {
       keyToken.map { token => asRule(token, key) } |||
       tempoToken.map { token => asRule(token, tempo) }
 
-  val grammar: Parser[List[Rule]] = rule.*
+
+  val dirPattern: Parser[List[Rule]] = (slash.? ~> rule).*
+
+  val pattern: Parser[List[Rule]] = rule.*
 
   private val escapedFolder: Parser[String] = for {
     _       <- tick
@@ -127,24 +132,32 @@ object Parsing extends RegexParsers {
      path <- subFolder
   } yield File(path.mkString("")).toPath
 
-  val grammarArg: Parser[List[Rule]] = for {
-    _       <- arg(Argument.Pattern)
-    rules   <- grammar
+  val filePatternArg: Parser[List[Rule]] = for {
+    _       <- arg(Argument.FilePattern)
+    rules   <- pattern
   } yield rules
 
-  val renameArg: Parser[List[Rule]] = for {
-    _     <- arg(Argument.Rename)
-    rules <- grammar
+  val dirStructureArg: Parser[List[Rule]] = for {
+    _       <- arg(Argument.DirStructure)
+    pattern <- dirPattern
+  } yield pattern
+
+
+  val renamePatternArg: Parser[List[Rule]] = for {
+    _     <- arg(Argument.RenamePattern)
+    rules <- pattern
   } yield rules
 
   // The arguments have to be sorted when read
   val cliArguments: Parser[CliArguments] = for {
-    pattern <- grammarArg
-    _       <- whiteSpace.*
-    path    <- pathArg
-    _       <- whiteSpace.*
-    rename  <- renameArg
-  } yield CliArguments(path, pattern, rename)
+    filePattern   <- filePatternArg
+    _             <- whiteSpace.*
+    path          <- pathArg
+    _             <- whiteSpace.*
+    dirStructure  <- dirStructureArg
+    _             <- whiteSpace.*
+    renamePattern <- renamePatternArg
+  } yield CliArguments(path, filePattern, dirStructure, renamePattern)
 
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
     case Success(result, _) => ParsingResult.Success(result)
