@@ -160,16 +160,16 @@ class ParserTest extends munit.FunSuite {
     )
   }
 
-  test("Can parse path arguments") {
+  test("Can parse dir arguments") {
     testParser(
       data = Map(
-        "--path=/home/my.self/this" -> File("/home/my.self/this").toPath,
-        "--path=/home/`this is a path with spaces`/what" -> File("/home/`this is a path with spaces`/what").toPath,
-        "--path=/`start here`/`because it's`/as.easy/as/`you'd like`" -> File("/`start here`/`because it's`/as.easy/as/`you'd like`").toPath,
-        "--path=this/should/`stop after`/this hello" -> File("this/should/`stop after`/this").toPath
+        "--dir=/home/my.self/this" -> File("/home/my.self/this"),
+        "--dir=/home/`this is a path with spaces`/what" -> File("/home/`this is a path with spaces`/what"),
+        "--dir=/`start here`/`because it's`/as.easy/as/`you'd like`" -> File("/`start here`/`because it's`/as.easy/as/`you'd like`"),
+        "--dir=this/should/`stop after`/this hello" -> File("this/should/`stop after`/this")
 
       ),
-      parser = Parsing.pathArg
+      parser = Parsing.dirArg
     )
   }
 
@@ -224,8 +224,8 @@ class ParserTest extends munit.FunSuite {
   test("Can parse cli arguments") {
     testParser(
       data = Map(
-        "--file-pattern=<name> <key> --path=C:/this/is/some/path --dir-structure=<name>/<key> --rename-pattern=<key> <name>" -> CliArguments(
-          path = File("C:/this/is/some/path").toPath,
+        "--file-pattern=<name> <key> --dir=C:/this/is/some/path --dir-structure=<name>/<key> --rename-pattern=<key> <name>" -> CliArguments(
+          directory = File("C:/this/is/some/path"),
           filePattern = List(Rule.ParsingRule(Token.Name, Parsing.label), Rule.ParsingRule(Token.Key, Parsing.key)),
           dirStructure = List(Rule.ParsingRule(Token.Name, Parsing.label), Rule.ParsingRule(Token.Key, Parsing.key)),
           renamePattern = List(Rule.ParsingRule(Token.Key, Parsing.key), Rule.ParsingRule(Token.Name, Parsing.label))

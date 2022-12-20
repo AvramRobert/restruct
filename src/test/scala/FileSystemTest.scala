@@ -44,25 +44,25 @@ class FileSystemTest extends munit.FunSuite {
       secondFiles)
 
     inFileSystem(fileSystem = fs) { parent =>
-      val actualAll = listFiles(parent).files
+      val actualAll = listFiles(parent)
       val expectedAll = fs.files.map(parent.asParent)
 
-      val actualFirst = listFiles(parent.asParent("/first")).files
+      val actualFirst = listFiles(parent.asParent("/first"))
       val expectedFirst = (first11Files ++ first121Files ++ first122Files ++ first2Files ++ first31Files).map(parent.asParent)
 
-      val actualFirst1 = listFiles(parent.asParent("/first/first-1")).files
+      val actualFirst1 = listFiles(parent.asParent("/first/first-1"))
       val expectedFirst1 = (first11Files ++ first121Files ++ first122Files).map(parent.asParent)
 
-      val actualFirst11 = listFiles(parent.asParent("/first/first-1/first-1-1")).files
+      val actualFirst11 = listFiles(parent.asParent("/first/first-1/first-1-1"))
       val expectedFirst11 = first11Files.map(parent.asParent)
 
-      val actualFirst12 = listFiles(parent.asParent("/first/first-1/first-1-2")).files
+      val actualFirst12 = listFiles(parent.asParent("/first/first-1/first-1-2"))
       val expectedFirst12 = (first121Files ++ first122Files).map(parent.asParent)
 
-      val actualFirst3 = listFiles(parent.asParent("/first/first-3")).files
+      val actualFirst3 = listFiles(parent.asParent("/first/first-3"))
       val expectedFirst3 = first31Files.map(parent.asParent)
 
-      val actualSecond = listFiles(parent.asParent("/second")).files
+      val actualSecond = listFiles(parent.asParent("/second"))
       val expectedSecond = secondFiles.map(parent.asParent)
 
       assertEquals(actualAll.toSet, expectedAll.toSet)

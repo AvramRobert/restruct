@@ -127,10 +127,10 @@ object Parsing extends RegexParsers {
     }
   } yield right + left
 
-  val pathArg: Parser[Path] = for {
-     _     <- arg(Argument.Path)
+  val dirArg: Parser[File] = for {
+     _     <- arg(Argument.Dir)
      path <- subFolder
-  } yield File(path.mkString("")).toPath
+  } yield File(path.mkString(""))
 
   val filePatternArg: Parser[List[Rule]] = for {
     _       <- arg(Argument.FilePattern)
@@ -152,12 +152,12 @@ object Parsing extends RegexParsers {
   val cliArguments: Parser[CliArguments] = for {
     filePattern   <- filePatternArg
     _             <- whiteSpace.*
-    path          <- pathArg
+    dir           <- dirArg
     _             <- whiteSpace.*
     dirStructure  <- dirStructureArg
     _             <- whiteSpace.*
     renamePattern <- renamePatternArg
-  } yield CliArguments(path, filePattern, dirStructure, renamePattern)
+  } yield CliArguments(dir, filePattern, dirStructure, renamePattern)
 
   def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
     case Success(result, _) => ParsingResult.Success(result)

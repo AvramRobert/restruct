@@ -3,9 +3,7 @@ package filesystem
 import java.io.File
 import scala.annotation.tailrec
 
-case class FilesystemData(files: List[File])
-
-def listFiles(dir: File): FilesystemData = {
+def listFiles(dir: File): List[File] = {
   @tailrec
   def recurse(dirs: List[File], files: List[File] = List.empty): List[File] = dirs match {
   case dir :: dirs if dir.isFile => recurse (dirs, dir +: files)
@@ -13,6 +11,6 @@ def listFiles(dir: File): FilesystemData = {
   case Nil => files
 }
 
-  if (dir.isFile) FilesystemData(List(dir))
-  else FilesystemData(recurse(dir.listFiles().toList))
+  if (dir.isFile) List(dir)
+  else recurse(dir.listFiles().toList)
 }
