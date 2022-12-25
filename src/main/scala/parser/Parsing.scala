@@ -9,10 +9,10 @@ object Parsing extends RegexParsers {
   override def skipWhitespace: Boolean = false
 
   private val delimiters = Set(' ', '-', '_', '/')
-  private def asRule[A](token: Token[A], parser: Parser[A]): Rule = Rule.ParsingRule(token, parser)
+  private def asRule[A](token: Pattern[A], parser: Parser[A]): Rule = Rule.ParsingRule(token, parser)
   private def literalIf(p: Elem => Boolean): Parser[String] = acceptIf(p)(_.toString).*.map(_.mkString(""))
   private def noteParser(note: Note): Parser[Note] = literal(note.encoding).map { _ => note }
-  private def tokenParser[A](t: Token[A]): Parser[Token[A]] = for {
+  private def tokenParser[A](t: Pattern[A]): Parser[Pattern[A]] = for {
     _ <- whiteSpace.*
     _ <- lt
     _ <- whiteSpace.*
@@ -96,10 +96,10 @@ object Parsing extends RegexParsers {
     label       <- literalIf { c => !delimiters.contains(c) }
   } yield LabelMetadata(label)
 
-  val makerToken: Parser[Token[LabelMetadata]] = tokenParser(Token.Maker)
-  val nameToken: Parser[Token[LabelMetadata]] = tokenParser(Token.Name)
-  val keyToken: Parser[Token[KeyMetadata]] = tokenParser(Token.Key)
-  val tempoToken: Parser[Token[TempoMetadata]] = tokenParser(Token.Tempo)
+  val makerToken: Parser[Pattern[LabelMetadata]] = tokenParser(Pattern.Maker)
+  val nameToken: Parser[Pattern[LabelMetadata]] = tokenParser(Pattern.Name)
+  val keyToken: Parser[Pattern[KeyMetadata]] = tokenParser(Pattern.Key)
+  val tempoToken: Parser[Pattern[TempoMetadata]] = tokenParser(Pattern.Tempo)
 
   val rule: Parser[Rule] =
       makerToken.map { token => asRule(token, label) } |||

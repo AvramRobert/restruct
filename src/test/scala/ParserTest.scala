@@ -135,10 +135,10 @@ class ParserTest extends munit.FunSuite {
     testParser(
       data = Map(
         "<maker> <name> <tempo> <key>" -> List(
-          Rule.ParsingRule(Token.Maker, Parsing.label),
-          Rule.ParsingRule(Token.Name, Parsing.label),
-          Rule.ParsingRule(Token.Tempo, Parsing.tempo),
-          Rule.ParsingRule(Token.Key, Parsing.key)
+          Rule.ParsingRule(Pattern.Maker, Parsing.label),
+          Rule.ParsingRule(Pattern.Name, Parsing.label),
+          Rule.ParsingRule(Pattern.Tempo, Parsing.tempo),
+          Rule.ParsingRule(Pattern.Key, Parsing.key)
         )
       ),
       parser = Parsing.pattern
@@ -150,11 +150,11 @@ class ParserTest extends munit.FunSuite {
     testParser(
       data = Map(
         "86bpm brave new world C#maj" -> List(
-          Metadata.ParsingMetadata(Token.Tempo, TempoMetadata(86)),
-          Metadata.ParsingMetadata(Token.Maker, LabelMetadata("brave")),
-          Metadata.ParsingMetadata(Token.Maker, LabelMetadata("new")),
-          Metadata.ParsingMetadata(Token.Maker, LabelMetadata("world")),
-          Metadata.ParsingMetadata(Token.Key, KeyMetadata(Note.C, Accidental.Sharp, Scale.Major)))
+          Metadata.ParsingMetadata(Pattern.Tempo, TempoMetadata(86)),
+          Metadata.ParsingMetadata(Pattern.Maker, LabelMetadata("brave")),
+          Metadata.ParsingMetadata(Pattern.Maker, LabelMetadata("new")),
+          Metadata.ParsingMetadata(Pattern.Maker, LabelMetadata("world")),
+          Metadata.ParsingMetadata(Pattern.Key, KeyMetadata(Note.C, Accidental.Sharp, Scale.Major)))
       ),
       parser = Parsing.fromGrammar(grammar)
     )
@@ -177,10 +177,10 @@ class ParserTest extends munit.FunSuite {
     testParser(
       data = Map(
         "--file-pattern=<maker> <name> <key> <tempo>" -> List(
-          Rule.ParsingRule(Token.Maker, Parsing.label),
-          Rule.ParsingRule(Token.Name, Parsing.label),
-          Rule.ParsingRule(Token.Key, Parsing.key),
-          Rule.ParsingRule(Token.Tempo, Parsing.tempo)
+          Rule.ParsingRule(Pattern.Maker, Parsing.label),
+          Rule.ParsingRule(Pattern.Name, Parsing.label),
+          Rule.ParsingRule(Pattern.Key, Parsing.key),
+          Rule.ParsingRule(Pattern.Tempo, Parsing.tempo)
         )
       ),
       parser = Parsing.filePatternArg
@@ -191,16 +191,16 @@ class ParserTest extends munit.FunSuite {
     testParser(
       data = Map(
         "--dir-structure=<maker>/<name>/<key>/<tempo>" -> List(
-          Rule.ParsingRule(Token.Maker, Parsing.label),
-          Rule.ParsingRule(Token.Name, Parsing.label),
-          Rule.ParsingRule(Token.Key, Parsing.key),
-          Rule.ParsingRule(Token.Tempo, Parsing.tempo)
+          Rule.ParsingRule(Pattern.Maker, Parsing.label),
+          Rule.ParsingRule(Pattern.Name, Parsing.label),
+          Rule.ParsingRule(Pattern.Key, Parsing.key),
+          Rule.ParsingRule(Pattern.Tempo, Parsing.tempo)
         ),
         "--dir-structure=/<maker>/<name>/<key>/<tempo>" -> List(
-          Rule.ParsingRule(Token.Maker, Parsing.label),
-          Rule.ParsingRule(Token.Name, Parsing.label),
-          Rule.ParsingRule(Token.Key, Parsing.key),
-          Rule.ParsingRule(Token.Tempo, Parsing.tempo)
+          Rule.ParsingRule(Pattern.Maker, Parsing.label),
+          Rule.ParsingRule(Pattern.Name, Parsing.label),
+          Rule.ParsingRule(Pattern.Key, Parsing.key),
+          Rule.ParsingRule(Pattern.Tempo, Parsing.tempo)
         ),
       ),
       parser = Parsing.dirStructureArg
@@ -211,10 +211,10 @@ class ParserTest extends munit.FunSuite {
     testParser(
       data = Map(
         "--rename-pattern=<maker> <name> <key> <tempo>" -> List(
-          Rule.ParsingRule(Token.Maker, Parsing.label),
-          Rule.ParsingRule(Token.Name, Parsing.label),
-          Rule.ParsingRule(Token.Key, Parsing.key),
-          Rule.ParsingRule(Token.Tempo, Parsing.tempo)
+          Rule.ParsingRule(Pattern.Maker, Parsing.label),
+          Rule.ParsingRule(Pattern.Name, Parsing.label),
+          Rule.ParsingRule(Pattern.Key, Parsing.key),
+          Rule.ParsingRule(Pattern.Tempo, Parsing.tempo)
         )
       ),
       parser = Parsing.renamePatternArg
@@ -226,9 +226,9 @@ class ParserTest extends munit.FunSuite {
       data = Map(
         "--file-pattern=<name> <key> --dir=C:/this/is/some/path --dir-structure=<name>/<key> --rename-pattern=<key> <name>" -> CliArguments(
           directory = File("C:/this/is/some/path"),
-          filePattern = List(Rule.ParsingRule(Token.Name, Parsing.label), Rule.ParsingRule(Token.Key, Parsing.key)),
-          dirStructure = List(Rule.ParsingRule(Token.Name, Parsing.label), Rule.ParsingRule(Token.Key, Parsing.key)),
-          renamePattern = List(Rule.ParsingRule(Token.Key, Parsing.key), Rule.ParsingRule(Token.Name, Parsing.label))
+          filePattern = List(Rule.ParsingRule(Pattern.Name, Parsing.label), Rule.ParsingRule(Pattern.Key, Parsing.key)),
+          dirStructure = List(Rule.ParsingRule(Pattern.Name, Parsing.label), Rule.ParsingRule(Pattern.Key, Parsing.key)),
+          renamePattern = List(Rule.ParsingRule(Pattern.Key, Parsing.key), Rule.ParsingRule(Pattern.Name, Parsing.label))
         )
       ),
       parser = Parsing.cliArguments

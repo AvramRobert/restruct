@@ -8,8 +8,9 @@ import scala.util.parsing.combinator.RegexParsers
 import parser.{*, given}
 import filesystem.*
 import scala.util.{Failure, Success, Try}
+import parser.Parsing.*
 
-case class DirectoryStructure(content: Map[Rule, Map[File, Metadata]],
+case class DirectoryStructure(content: Map[Token, Map[File, Metadata]],
                               structure: List[Rule],
                               reversionSchema: Map[File, File])
 object Main {
@@ -34,17 +35,18 @@ def readDirectoryStructure(files: List[File], args: CliArguments): Try[Directory
 
   @tailrec
   def acc(files: List[File],
-          content: Map[Rule, Map[File, Metadata]] = Map.empty): Try[Map[Rule, Map[File, Metadata]]] = files match {
+          content: Map[Token, Map[File, Metadata]] = Map.empty): Try[Map[Token, Map[File, Metadata]]] = files match {
     case f :: fs => Parsing.run(parser, f.getName) match {
-      case ParsingResult.Success(metadata) => acc(
-        files = fs,
-        content = metadata.foldLeft(content) { (newContent, m) =>
-          newContent.updatedWith(rule(m)) {
-            case Some(items) => Some(items.updatedWith(f) { _ => Some(m) })
-            case None => Some(Map(f -> m))
+      case ParsingResult.Success(metadata) =>
+        acc(
+          files = fs,
+          content = metadata.foldLeft(content) { (newContent, m) =>
+            newContent.updatedWith(m.token) {
+              case Some(items) => Some(items.updatedWith(f) { _ => Some(m) })
+              case None => Some(Map(f -> m))
+            }
           }
-        }
-      )
+        )
       case ParsingResult.Failure(msg) => Failure(Throwable(msg))
     }
     case Nil => Success(content)
@@ -58,8 +60,6 @@ def readDirectoryStructure(files: List[File], args: CliArguments): Try[Directory
 }
 
 def restructure(structure: DirectoryStructure): Unit = ???
-
-def rule(metadata: Metadata): Rule = ???
 
 def run(args: CliArguments): Try[Unit] =
   listFiles(args.directory)
