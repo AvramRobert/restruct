@@ -1,19 +1,19 @@
-package parser
-import data.{Accidental, Argument, CliArguments, Emission, Key, Label, Note, Pattern, Scale, Tempo, Token}
-import parser.ParsingResult.Failure
+import data.*
 
 import java.io.File
-import java.nio.file.Path
 import scala.annotation.tailrec
 import scala.util.Try
-import scala.util.parsing.combinator.*
+import scala.util.parsing.combinator.RegexParsers
 
 object Parsing extends RegexParsers {
   override def skipWhitespace: Boolean = false
 
   private val delimiters = Set(' ', '-', '_', '/')
+
   private def literalIf(p: Elem => Boolean): Parser[String] = acceptIf(p)(_.toString).*.map(_.mkString(""))
+
   private def noteParser(note: Note): Parser[Note] = literal(note.encoding).map { _ => note }
+
   private def tokenParser[A](t: Token[A]): Parser[Token[A]] = for {
     _ <- whiteSpace.*
     _ <- lt
@@ -35,8 +35,8 @@ object Parsing extends RegexParsers {
     def unravel(rules: List[Pattern], data: List[Emission] = List.empty, rem: Input = input): ParseResult[List[Emission]] = rules match {
       case Pattern.TokenPattern(token) :: ps => parserFor(token)(rem) match {
         case Success(result, next) => unravel(ps, Emission.ParsingEmission(token, result) +: data, next)
-        case Error(msg, next)      => Error(msg, next)
-        case Failure(msg, next)    => Failure(msg, next)
+        case Error(msg, next) => Error(msg, next)
+        case Failure(msg, next) => Failure(msg, next)
       }
       case Nil => Success(data.reverse, rem)
     }
@@ -59,7 +59,7 @@ object Parsing extends RegexParsers {
   def arg(argument: Argument): Parser[String] = literal(s"--${argument.ref}=")
 
   val number: Parser[Long] = s"[0-9]*".r.flatMap { s =>
-    if(s.isBlank) failure("Number regex read nothing. Input did not start with digits.")
+    if (s.isBlank) failure("Number regex read nothing. Input did not start with digits.")
     else success(s.toLong)
   }
 
@@ -85,24 +85,24 @@ object Parsing extends RegexParsers {
   val bpm: Parser[String] = whiteSpace.* ~> anyCase("bpm")
 
   val key: Parser[Key] = for {
-    _     <- whiteSpace.*
-    note  <- note
-    _     <- whiteSpace.*
-    acc   <- accidental
-    _     <- whiteSpace.*
+    _ <- whiteSpace.*
+    note <- note
+    _ <- whiteSpace.*
+    acc <- accidental
+    _ <- whiteSpace.*
     scale <- scale
   } yield Key(note, acc, scale)
 
   val tempo: Parser[Tempo] = for {
-    _   <- whiteSpace.*
+    _ <- whiteSpace.*
     num <- number
-    _   <- whiteSpace.*
-    _   <- bpm
+    _ <- whiteSpace.*
+    _ <- bpm
   } yield Tempo(num)
 
   val label: Parser[Label] = for {
-    _           <- whiteSpace.*
-    label       <- literalIf { c => !delimiters.contains(c) }
+    _ <- whiteSpace.*
+    label <- literalIf { c => !delimiters.contains(c) }
   } yield Label(label)
 
   val makerToken: Parser[Token[Label]] = tokenParser(Token.Maker)
@@ -119,9 +119,11 @@ object Parsing extends RegexParsers {
   val pathPattern: Parser[Pattern] = slash.? ~> pattern
 
   private val escapedFolder: Parser[String] = for {
-    _       <- tick
-    content <- literalIf { _ != '`' }
-    _       <- tick
+    _ <- tick
+    content <- literalIf {
+      _ != '`'
+    }
+    _ <- tick
   } yield s"`$content`"
 
   private def subFolder: Parser[String] = for {
@@ -134,34 +136,34 @@ object Parsing extends RegexParsers {
   } yield right + left
 
   val dirArg: Parser[File] = for {
-     _     <- arg(Argument.Dir)
-     path <- subFolder
+    _ <- arg(Argument.Dir)
+    path <- subFolder
   } yield File(path.mkString(""))
 
   val filePatternArg: Parser[List[Pattern]] = for {
-    _       <- arg(Argument.FilePattern)
-    rules   <- pattern.*
+    _ <- arg(Argument.FilePattern)
+    rules <- pattern.*
   } yield rules
 
   val dirStructureArg: Parser[List[Pattern]] = for {
-    _       <- arg(Argument.DirStructure)
+    _ <- arg(Argument.DirStructure)
     pattern <- pathPattern.*
   } yield pattern
 
 
   val renamePatternArg: Parser[List[Pattern]] = for {
-    _     <- arg(Argument.RenamePattern)
+    _ <- arg(Argument.RenamePattern)
     rules <- pattern.*
   } yield rules
 
   // The arguments have to be sorted when read
   val cliArguments: Parser[CliArguments] = for {
-    filePattern   <- filePatternArg
-    _             <- whiteSpace.*
-    dir           <- dirArg
-    _             <- whiteSpace.*
-    dirStructure  <- dirStructureArg
-    _             <- whiteSpace.*
+    filePattern <- filePatternArg
+    _ <- whiteSpace.*
+    dir <- dirArg
+    _ <- whiteSpace.*
+    dirStructure <- dirStructureArg
+    _ <- whiteSpace.*
     renamePattern <- renamePatternArg
   } yield CliArguments(dir, filePattern, dirStructure, renamePattern)
 

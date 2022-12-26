@@ -1,6 +1,5 @@
 import data.*
 import data.Pattern.TokenPattern
-import parser.*
 
 import java.io.File
 import scala.util.parsing.combinator.*

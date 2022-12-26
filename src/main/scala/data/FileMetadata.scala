@@ -1,6 +1,5 @@
 package data
 
-import parser.*
 import typeclasses.Encoding
 
 enum Note(val encoding: String):

@@ -1,7 +1,7 @@
 
 import java.io.File
 import java.nio.file.Path
-import filesystem.*
+import FileSystem.listFiles
 import util.*
 
 class FileSystemTest extends munit.FunSuite {

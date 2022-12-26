@@ -2,11 +2,11 @@ package util
 
 import java.io.File
 
-case class FileSystem(files: List[File], dirs: List[File])
+case class TestFileSystem(files: List[File], dirs: List[File])
 
 val tempTestDir = File("target/test")
 
-def inFileSystem[A](fileSystem: FileSystem, where: File = tempTestDir)(f: File => A): Unit = {
+def inFileSystem[A](fileSystem: TestFileSystem, where: File = tempTestDir)(f: File => A): Unit = {
   where.mkdirs()
   val subdirs = fileSystem.dirs.map(where.asParent)
   val subfiles = fileSystem.files.map(where.asParent)
@@ -17,9 +17,9 @@ def inFileSystem[A](fileSystem: FileSystem, where: File = tempTestDir)(f: File =
   where.delete()
 }
 
-def fileSystem(paths: List[String]): FileSystem = paths
+def fileSystem(paths: List[String]): TestFileSystem = paths
   .map { File(_) }
-  .foldLeft(FileSystem(List.empty, List.empty)) { (fs, file) =>
+  .foldLeft(TestFileSystem(List.empty, List.empty)) { (fs, file) =>
     fs.copy(files = file +: fs.files, dirs = file.getParentFile +: fs.dirs)
   }
 
