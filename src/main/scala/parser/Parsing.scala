@@ -1,18 +1,20 @@
 package parser
+import data.{Accidental, Argument, CliArguments, Emission, Key, Label, Note, Pattern, Scale, Tempo, Token}
 import parser.ParsingResult.Failure
+
 import java.io.File
 import java.nio.file.Path
 import scala.annotation.tailrec
+import scala.util.Try
 import scala.util.parsing.combinator.*
 
 object Parsing extends RegexParsers {
   override def skipWhitespace: Boolean = false
 
   private val delimiters = Set(' ', '-', '_', '/')
-  private def asRule[A](token: Pattern[A], parser: Parser[A]): Rule = Rule.ParsingRule(token, parser)
   private def literalIf(p: Elem => Boolean): Parser[String] = acceptIf(p)(_.toString).*.map(_.mkString(""))
   private def noteParser(note: Note): Parser[Note] = literal(note.encoding).map { _ => note }
-  private def tokenParser[A](t: Pattern[A]): Parser[Pattern[A]] = for {
+  private def tokenParser[A](t: Token[A]): Parser[Token[A]] = for {
     _ <- whiteSpace.*
     _ <- lt
     _ <- whiteSpace.*
@@ -21,18 +23,25 @@ object Parsing extends RegexParsers {
     _ <- gt
   } yield t
 
-  def fromGrammar(grammar: List[Rule]): Parser[List[Metadata]] = Parser { input =>
+  private def parserFor[A](token: Token[A]): Parser[A] = token match {
+    case Token.Key => key
+    case Token.Maker => label
+    case Token.Name => label
+    case Token.Tempo => tempo
+  }
+
+  def fromPatterns(patterns: List[Pattern]): Parser[List[Emission]] = Parser { input =>
     @tailrec
-    def unravel(rules: List[Rule], data: List[Metadata] = List.empty, rem: Input = input): ParseResult[List[Metadata]] = rules match {
-      case Rule.ParsingRule(token, parser) :: ts => parser(rem) match {
-        case Success(result, next) => unravel(ts, Metadata.ParsingMetadata(token, result) +: data, next)
+    def unravel(rules: List[Pattern], data: List[Emission] = List.empty, rem: Input = input): ParseResult[List[Emission]] = rules match {
+      case Pattern.TokenPattern(token) :: ps => parserFor(token)(rem) match {
+        case Success(result, next) => unravel(ps, Emission.ParsingEmission(token, result) +: data, next)
         case Error(msg, next)      => Error(msg, next)
         case Failure(msg, next)    => Failure(msg, next)
       }
       case Nil => Success(data.reverse, rem)
     }
 
-    unravel(grammar)
+    unravel(patterns)
   }
 
   private def anyCase(value: String): Parser[String] = s"(?i)($value)".r
@@ -75,42 +84,39 @@ object Parsing extends RegexParsers {
 
   val bpm: Parser[String] = whiteSpace.* ~> anyCase("bpm")
 
-  val key: Parser[KeyMetadata] = for {
+  val key: Parser[Key] = for {
     _     <- whiteSpace.*
     note  <- note
     _     <- whiteSpace.*
     acc   <- accidental
     _     <- whiteSpace.*
     scale <- scale
-  } yield KeyMetadata(note, acc, scale)
+  } yield Key(note, acc, scale)
 
-  val tempo: Parser[TempoMetadata] = for {
+  val tempo: Parser[Tempo] = for {
     _   <- whiteSpace.*
     num <- number
     _   <- whiteSpace.*
     _   <- bpm
-  } yield TempoMetadata(num)
+  } yield Tempo(num)
 
-  val label: Parser[LabelMetadata] = for {
+  val label: Parser[Label] = for {
     _           <- whiteSpace.*
     label       <- literalIf { c => !delimiters.contains(c) }
-  } yield LabelMetadata(label)
+  } yield Label(label)
 
-  val makerToken: Parser[Pattern[LabelMetadata]] = tokenParser(Pattern.Maker)
-  val nameToken: Parser[Pattern[LabelMetadata]] = tokenParser(Pattern.Name)
-  val keyToken: Parser[Pattern[KeyMetadata]] = tokenParser(Pattern.Key)
-  val tempoToken: Parser[Pattern[TempoMetadata]] = tokenParser(Pattern.Tempo)
+  val makerToken: Parser[Token[Label]] = tokenParser(Token.Maker)
+  val nameToken: Parser[Token[Label]] = tokenParser(Token.Name)
+  val keyToken: Parser[Token[Key]] = tokenParser(Token.Key)
+  val tempoToken: Parser[Token[Tempo]] = tokenParser(Token.Tempo)
 
-  val rule: Parser[Rule] =
-      makerToken.map { token => asRule(token, label) } |||
-      nameToken.map { token => asRule(token, label) } |||
-      keyToken.map { token => asRule(token, key) } |||
-      tempoToken.map { token => asRule(token, tempo) }
+  val pattern: Parser[Pattern] =
+    makerToken.map(Pattern.TokenPattern(_)) |||
+      nameToken.map(Pattern.TokenPattern(_)) |||
+      keyToken.map(Pattern.TokenPattern(_)) |||
+      tempoToken.map(Pattern.TokenPattern(_))
 
-
-  val dirPattern: Parser[List[Rule]] = (slash.? ~> rule).*
-
-  val pattern: Parser[List[Rule]] = rule.*
+  val pathPattern: Parser[Pattern] = slash.? ~> pattern
 
   private val escapedFolder: Parser[String] = for {
     _       <- tick
@@ -132,20 +138,20 @@ object Parsing extends RegexParsers {
      path <- subFolder
   } yield File(path.mkString(""))
 
-  val filePatternArg: Parser[List[Rule]] = for {
+  val filePatternArg: Parser[List[Pattern]] = for {
     _       <- arg(Argument.FilePattern)
-    rules   <- pattern
+    rules   <- pattern.*
   } yield rules
 
-  val dirStructureArg: Parser[List[Rule]] = for {
+  val dirStructureArg: Parser[List[Pattern]] = for {
     _       <- arg(Argument.DirStructure)
-    pattern <- dirPattern
+    pattern <- pathPattern.*
   } yield pattern
 
 
-  val renamePatternArg: Parser[List[Rule]] = for {
+  val renamePatternArg: Parser[List[Pattern]] = for {
     _     <- arg(Argument.RenamePattern)
-    rules <- pattern
+    rules <- pattern.*
   } yield rules
 
   // The arguments have to be sorted when read
@@ -159,9 +165,9 @@ object Parsing extends RegexParsers {
     renamePattern <- renamePatternArg
   } yield CliArguments(dir, filePattern, dirStructure, renamePattern)
 
-  def run[A](parser: Parser[A], input: String): ParsingResult[A] = parse(parser, input) match {
-    case Success(result, _) => ParsingResult.Success(result)
-    case Error(msg, _) => ParsingResult.Failure(msg)
-    case Failure(msg, _) => ParsingResult.Failure(msg)
+  def run[A](parser: Parser[A], input: String): Try[A] = parse(parser, input) match {
+    case Success(result, _) => scala.util.Success(result)
+    case Error(msg, _) => scala.util.Failure(Throwable(msg))
+    case Failure(msg, _) => scala.util.Failure(Throwable(msg))
   }
 }

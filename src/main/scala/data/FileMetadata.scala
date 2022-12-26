@@ -1,4 +1,7 @@
-package parser
+package data
+
+import parser.*
+import typeclasses.Encoding
 
 enum Note(val encoding: String):
   case A extends Note("A")
@@ -18,11 +21,11 @@ enum Accidental(val encoding: String):
   case Flat extends Accidental("♭")
   case Sharp extends Accidental("#")
 
-case class KeyMetadata(note: Note, accidental: Accidental, scale: Scale) 
+case class Key(note: Note, accidental: Accidental, scale: Scale)
 
-case class TempoMetadata(bpm: Long)
+case class Tempo(bpm: Long)
 
-case class LabelMetadata(label: String)
+case class Label(label: String)
 
 given Encoding[Note] with
   def encode(note: Note): String = note.encoding
@@ -33,13 +36,13 @@ given Encoding[Scale] with
 given Encoding[Accidental] with
   def encode(accidental: Accidental): String = accidental.encoding
 
-given Encoding[KeyMetadata] with
-  def encode(keyMetadata: KeyMetadata): String = {
-    s"${parser.encode(keyMetadata.note)}${parser.encode(keyMetadata.accidental)} ${parser.encode(keyMetadata.scale)}"
+given Encoding[Key] with
+  def encode(keyMetadata: Key): String = {
+    s"${typeclasses.encode(keyMetadata.note)}${typeclasses.encode(keyMetadata.accidental)} ${typeclasses.encode(keyMetadata.scale)}"
   }
-  
-given Encoding[TempoMetadata] with
-  def encode(tempo: TempoMetadata): String = s"${tempo.bpm.toFloat.floor.toLong}s bpm"
-  
-given Encoding[LabelMetadata] with
-  def encode(title: LabelMetadata): String = title.label
+
+given Encoding[Tempo] with
+  def encode(tempo: Tempo): String = s"${tempo.bpm.toFloat.floor.toLong}s bpm"
+
+given Encoding[Label] with
+  def encode(title: Label): String = title.label

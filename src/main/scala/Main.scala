@@ -1,18 +1,16 @@
-import parser.{Metadata, Parsing}
+import parser.Parsing
 
-import java.nio.file.{Files, Path, Paths, StandardCopyOption}
+import data.*
+import java.nio.file.{Files, Path, Paths}
 import java.io.File
 import scala.annotation.tailrec
 import scala.util.chaining.*
 import scala.util.parsing.combinator.RegexParsers
 import parser.{*, given}
 import filesystem.*
-import scala.util.{Failure, Success, Try}
-import parser.Parsing.*
 
-case class DirectoryStructure(content: Map[Token, Map[File, Metadata]],
-                              structure: List[Rule],
-                              reversionSchema: Map[File, File])
+import scala.util.{Failure, Success, Try}
+
 object Main {
   def main(args: Array[String]): Unit =
     readArgs(args)
@@ -25,31 +23,27 @@ def readArgs(args: Array[String]): Try[CliArguments] = args
   .sorted
   .mkString(" ")
   .pipe(args => Parsing.run(Parsing.cliArguments, args))
-  .pipe {
-    case ParsingResult.Success(result) => Success(result)
-    case ParsingResult.Failure(msg) => Failure(Throwable(msg))
-  }
 
 def readDirectoryStructure(files: List[File], args: CliArguments): Try[DirectoryStructure] = {
-  val parser = Parsing.fromGrammar(args.filePattern)
+  val parser = Parsing.fromPatterns(args.filePattern)
 
   @tailrec
   def acc(files: List[File],
-          content: Map[Token, Map[File, Metadata]] = Map.empty): Try[Map[Token, Map[File, Metadata]]] = files match {
-    case f :: fs => Parsing.run(parser, f.getName) match {
-      case ParsingResult.Success(metadata) =>
-        acc(
-          files = fs,
-          content = metadata.foldLeft(content) { (newContent, m) =>
-            newContent.updatedWith(m.token) {
-              case Some(items) => Some(items.updatedWith(f) { _ => Some(m) })
-              case None => Some(Map(f -> m))
-            }
-          }
-        )
-      case ParsingResult.Failure(msg) => Failure(Throwable(msg))
-    }
+          content: Map[Pattern, Map[File, Emission]] = Map.empty): Try[Map[Pattern, Map[File, Emission]]] = files match {
     case Nil => Success(content)
+    case f :: fs => Parsing
+      .run(parser, f.getName)
+      .map { emissions =>
+        emissions.foldLeft(content) { (newContent, emission) =>
+          newContent.updatedWith(emission.pattern) {
+            case Some(items) => Some(items + (f -> emission))
+            case None => Some(Map(f -> emission))
+          }
+        }
+      } match {
+      case Success(value) => acc(fs, value)
+      case e              => e
+    }
   }
 
   acc(files)

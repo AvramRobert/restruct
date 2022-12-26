@@ -1,4 +1,4 @@
-package parser
+package data
 
 import java.io.File
 
@@ -8,4 +8,7 @@ enum Argument(val priority: Int, val ref: String):
   case DirStructure extends Argument(2, "dir-structure")
   case RenamePattern extends Argument(3, "rename-pattern")
 
-case class CliArguments(directory: File, filePattern: List[Rule], dirStructure: List[Rule], renamePattern: List[Rule])
+case class CliArguments(directory: File, 
+                        filePattern: List[Pattern], 
+                        dirStructure: List[Pattern], 
+                        renamePattern: List[Pattern])
