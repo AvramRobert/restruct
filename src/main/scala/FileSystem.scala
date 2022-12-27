@@ -17,33 +17,4 @@ object FileSystem {
     if (dir.isFile) List(dir)
     else recurse(dir.listFiles().toList)
   }
-
-  def readDirectoryStructure(files: List[File], args: CliArguments): Try[DirectoryStructure] = {
-    val parser = Parsing.fromPatterns(args.filePattern)
-
-    @tailrec
-    def acc(files: List[File],
-            content: Map[Pattern, Map[File, Emission]] = Map.empty): Try[Map[Pattern, Map[File, Emission]]] = files match {
-      case Nil => Success(content)
-      case f :: fs => Parsing
-        .run(parser, f.getName)
-        .map { emissions =>
-          emissions.foldLeft(content) { (newContent, emission) =>
-            newContent.updatedWith(emission.pattern) {
-              case Some(items) => Some(items + (f -> emission))
-              case None => Some(Map(f -> emission))
-            }
-          }
-        } match {
-        case Success(value) => acc(fs, value)
-        case e => e
-      }
-    }
-
-    acc(files)
-      .map(content => DirectoryStructure(
-        content = content,
-        structure = args.dirStructure,
-        reversionSchema = Map.empty))
-  }
 }

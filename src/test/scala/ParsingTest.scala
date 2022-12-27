@@ -3,7 +3,7 @@ import data.Pattern.TokenPattern
 
 import java.io.File
 import scala.util.parsing.combinator.*
-class ParserTest extends munit.FunSuite {
+class ParsingTest extends munit.FunSuite {
 
   test("Can parse notes") {
     testParser(

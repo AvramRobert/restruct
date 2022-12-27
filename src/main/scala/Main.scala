@@ -25,5 +25,5 @@ def readArgs(args: Array[String]): Try[CliArguments] = args
 def run(args: CliArguments): Try[Unit] =
   FileSystem
     .listFiles(args.directory)
-    .pipe { files => FileSystem.readDirectoryStructure(files, args) }
+    .pipe { files => Core.readDirectoryStructure(files, args) }
     .map { structure => () }
