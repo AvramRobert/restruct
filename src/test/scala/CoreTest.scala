@@ -8,42 +8,58 @@ class CoreTest extends munit.FunSuite {
   // TODO: Add a `type` pattern => type of sound
   // TODO: Add a `subtype` pattern => hard/soft
   // TODO: Add a `extension` pattern => for .wav, .mp3
-
-  test("reads file data semantically") {
-    val keys = List(
-      "/pack1/808s/pack1 808 hard Cmin.wav",
-      "/pack1/808s/pack1 808 soft C#min.wav",
-    )
-
-    val keysAndTempo = List(
-      "/pack1/vocals/shouts/pack1 female shout oh-yeah Amin 140BPM.wav",
-      "/pack1/vocals/shouts/pack1 male shout oh-yeah A 150BPM.wav"
-    )
-
-    val testFileSystem = fileSystem(keys ++ keysAndTempo)
+  // TODO: Add list of emissions for FileData
+  test("reads tokens occurring singularly") {
+    val testFileSystem = fileSystem(
+      List(
+      "/pack1/808s/pack1 808 Cmin.wav",
+      "/pack1/808s/pack1 808 C#min.wav",
+      "/pack1/808s/synthy/pack1 808 A.wav"
+    ))
 
     inFileSystem(testFileSystem) { dir =>
+      val subdir = dir.asParent("/pack1/808s")
       val args = CliArguments(
-        directory = File(s"${dir.getAbsolutePath}/pack1/808s"),
+        directory = subdir,
         filePattern = List(
-          Pattern.TokenPattern(Token.Maker),
-          Pattern.TokenPattern(Token.Name),
-          Pattern.TokenPattern(Token.Name),
-          Pattern.TokenPattern(Token.Key)
+          makerPattern,
+          namePattern,
+          keyPattern
         ),
         dirStructure = List(
-          Pattern.TokenPattern(Token.Key),
-          Pattern.TokenPattern(Token.Maker),
+          keyPattern,
+          makerPattern,
         ),
         renamePattern = List(
-          Pattern.TokenPattern(Token.Maker),
-          Pattern.TokenPattern(Token.Name)
+          makerPattern,
+          namePattern
         )
       )
-      val files = FileSystem.listFiles(dir)
+      val expectedData: FileData = Map(
+        keyPattern -> Map(
+          dir.asParent("/pack1/808s/pack1 808 Cmin.wav") -> Emission.ParsingEmission(Token.Key, Key(note = Note.C, accidental = Accidental.None, scale = Scale.Minor)),
+          dir.asParent("/pack1/808s/pack1 808 C#min.wav") -> Emission.ParsingEmission(Token.Key, Key(note = Note.C, accidental = Accidental.Sharp, scale = Scale.Minor)),
+          dir.asParent("/pack1/808s/synthy/pack1 808 A.wav") -> Emission.ParsingEmission(Token.Key, Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major))
+        ),
+        makerPattern -> Map(
+          dir.asParent("/pack1/808s/pack1 808 Cmin.wav") -> Emission.ParsingEmission(Token.Maker, Label("pack1")),
+          dir.asParent("/pack1/808s/pack1 808 C#min.wav") -> Emission.ParsingEmission(Token.Maker, Label("pack1")),
+          dir.asParent("/pack1/808s/synthy/pack1 808 A.wav") -> Emission.ParsingEmission(Token.Maker, Label("pack1"))
+        ),
+        namePattern -> Map(
+          dir.asParent("/pack1/808s/pack1 808 Cmin.wav") -> Emission.ParsingEmission(Token.Name, Label("808")),
+          dir.asParent("/pack1/808s/pack1 808 C#min.wav") -> Emission.ParsingEmission(Token.Name, Label("808")),
+          dir.asParent("/pack1/808s/synthy/pack1 808 A.wav") -> Emission.ParsingEmission(Token.Name, Label("808"))
+
+        )
+      )
+      val files = FileSystem.listFiles(subdir)
       val structure = Core.readDirectoryStructure(files, args)
 
       assertEquals(structure.isSuccess, true)
+//      assertEquals(structure.get.fileData, expectedData)
+
+      structure.get.fileData.foreach(println)
     }
   }
 
