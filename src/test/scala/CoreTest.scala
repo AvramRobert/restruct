@@ -57,9 +57,7 @@ class CoreTest extends munit.FunSuite {
       val structure = Core.readDirectoryStructure(files, args)
 
       assertEquals(structure.isSuccess, true)
-//      assertEquals(structure.get.fileData, expectedData)
-
-      structure.get.fileData.foreach(println)
+      assertEquals(structure.get.fileData, expectedData)
     }
   }
 
