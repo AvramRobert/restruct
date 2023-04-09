@@ -35,7 +35,7 @@ class ParsingTest extends munit.FunSuite {
     testParser(
       data = Map(
         "#" -> Accidental.Sharp,
-        "♭" -> Accidental.Flat,
+        "b" -> Accidental.Flat,
         "" -> Accidental.None
       ),
       parser = Parsing.accidental

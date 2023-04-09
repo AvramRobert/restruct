@@ -85,23 +85,23 @@ object Parsing extends RegexParsers {
   val bpm: Parser[String] = whiteSpace.* ~> anyCase("bpm")
 
   val key: Parser[Key] = for {
-    _ <- whiteSpace.*
-    note <- note
-    _ <- whiteSpace.*
-    acc <- accidental
-    _ <- whiteSpace.*
+    _     <- whiteSpace.*
+    note  <- note
+    _     <- whiteSpace.*
+    acc   <- accidental
+    _     <- whiteSpace.*
     scale <- scale
   } yield Key(note, acc, scale)
 
   val tempo: Parser[Tempo] = for {
-    _ <- whiteSpace.*
+    _   <- whiteSpace.*
     num <- number
-    _ <- whiteSpace.*
-    _ <- bpm
+    _   <- whiteSpace.*
+    _   <- bpm
   } yield Tempo(num)
 
   val label: Parser[Label] = for {
-    _ <- whiteSpace.*
+    _     <- whiteSpace.*
     label <- literalIf { c => !delimiters.contains(c) }
   } yield Label(label)
 
@@ -119,51 +119,49 @@ object Parsing extends RegexParsers {
   val pathPattern: Parser[Pattern] = slash.? ~> pattern
 
   private val escapedFolder: Parser[String] = for {
-    _ <- tick
-    content <- literalIf {
-      _ != '`'
-    }
-    _ <- tick
+    _       <- tick
+    content <- literalIf { _ != '`' }
+    _       <- tick
   } yield s"`$content`"
 
   private def subFolder: Parser[String] = for {
-    right <- literalIf { c => c != '`' && c != ' ' }
+    right  <- literalIf { c => c != '`' && c != ' ' }
     middle <- escapedFolder.?
-    left <- middle match {
+    left   <- middle match {
       case Some(p) => subFolder.map { r => p + r }
       case None => success("")
     }
   } yield right + left
 
   val dirArg: Parser[File] = for {
-    _ <- arg(Argument.Dir)
+    _    <- arg(Argument.Dir)
     path <- subFolder
   } yield File(path.mkString(""))
 
   val filePatternArg: Parser[List[Pattern]] = for {
-    _ <- arg(Argument.FilePattern)
+    _     <- arg(Argument.FilePattern)
     rules <- pattern.*
   } yield rules
 
   val dirStructureArg: Parser[List[Pattern]] = for {
-    _ <- arg(Argument.DirStructure)
+    _       <- arg(Argument.DirStructure)
     pattern <- pathPattern.*
   } yield pattern
 
 
   val renamePatternArg: Parser[List[Pattern]] = for {
-    _ <- arg(Argument.RenamePattern)
+    _     <- arg(Argument.RenamePattern)
     rules <- pattern.*
   } yield rules
 
   // The arguments have to be sorted when read
   val cliArguments: Parser[CliArguments] = for {
-    filePattern <- filePatternArg
-    _ <- whiteSpace.*
-    dir <- dirArg
-    _ <- whiteSpace.*
-    dirStructure <- dirStructureArg
-    _ <- whiteSpace.*
+    filePattern   <- filePatternArg
+    _             <- whiteSpace.*
+    dir           <- dirArg
+    _             <- whiteSpace.*
+    dirStructure  <- dirStructureArg
+    _             <- whiteSpace.*
     renamePattern <- renamePatternArg
   } yield CliArguments(dir, filePattern, dirStructure, renamePattern)
 

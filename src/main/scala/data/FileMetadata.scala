@@ -17,7 +17,7 @@ enum Scale(val encoding: String):
 
 enum Accidental(val encoding: String):
   case None extends Accidental("")
-  case Flat extends Accidental("♭")
+  case Flat extends Accidental("b")
   case Sharp extends Accidental("#")
 
 case class Key(note: Note, accidental: Accidental, scale: Scale)
