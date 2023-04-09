@@ -27,7 +27,7 @@ object Core {
 
   def readDirectoryStructure(files: List[File], args: CliArguments): Try[DirectoryStructure] =
     for {
-      parser <- Success(Parsing.fromPatterns(args.filePattern))
+      parser   <- Success(Parsing.fromPatterns(args.filePattern))
       fileData <- readFileData(files, parser)
     } yield DirectoryStructure(
       fileData = fileData,
