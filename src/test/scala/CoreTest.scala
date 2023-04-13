@@ -35,22 +35,47 @@ class CoreTest extends munit.FunSuite {
           namePattern
         )
       )
-      val expectedData: FileData = Map(
-        keyPattern -> Map(
-          dir.asParent("/pack1/808s/pack1 808 Cmin.wav") -> Emission.ParsingEmission(Token.Key, Key(note = Note.C, accidental = Accidental.None, scale = Scale.Minor)),
-          dir.asParent("/pack1/808s/pack1 808 C#min.wav") -> Emission.ParsingEmission(Token.Key, Key(note = Note.C, accidental = Accidental.Sharp, scale = Scale.Minor)),
-          dir.asParent("/pack1/808s/synthy/pack1 808 A.wav") -> Emission.ParsingEmission(Token.Key, Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major))
-        ),
-        makerPattern -> Map(
-          dir.asParent("/pack1/808s/pack1 808 Cmin.wav") -> Emission.ParsingEmission(Token.Maker, Label("pack1")),
-          dir.asParent("/pack1/808s/pack1 808 C#min.wav") -> Emission.ParsingEmission(Token.Maker, Label("pack1")),
-          dir.asParent("/pack1/808s/synthy/pack1 808 A.wav") -> Emission.ParsingEmission(Token.Maker, Label("pack1"))
-        ),
-        namePattern -> Map(
-          dir.asParent("/pack1/808s/pack1 808 Cmin.wav") -> Emission.ParsingEmission(Token.Name, Label("808")),
-          dir.asParent("/pack1/808s/pack1 808 C#min.wav") -> Emission.ParsingEmission(Token.Name, Label("808")),
-          dir.asParent("/pack1/808s/synthy/pack1 808 A.wav") -> Emission.ParsingEmission(Token.Name, Label("808"))
+      val expectedData: FileData = FileData(
+        metaData = Map(
+          keyPattern -> List(
+            Emission.ParsingEmission(Token.Key, Key(note = Note.C, accidental = Accidental.None, scale = Scale.Minor)),
+            Emission.ParsingEmission(Token.Key, Key(note = Note.C, accidental = Accidental.Sharp, scale = Scale.Minor)),
+            Emission.ParsingEmission(Token.Key, Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major))
+          ),
 
+          makerPattern -> List(
+            Emission.ParsingEmission(Token.Maker, Label("pack1")),
+            Emission.ParsingEmission(Token.Maker, Label("pack1")),
+            Emission.ParsingEmission(Token.Maker, Label("pack1"))
+          ),
+
+          namePattern -> List(
+            Emission.ParsingEmission(Token.Name, Label("808")),
+            Emission.ParsingEmission(Token.Name, Label("808")),
+            Emission.ParsingEmission(Token.Name, Label("808"))
+          )
+        ),
+
+        contentData = Map(
+          Emission.ParsingEmission(Token.Key, Key(note = Note.C, accidental = Accidental.None, scale = Scale.Minor)) -> List(
+            dir.asParent("/pack1/808s/pack1 808 Cmin.wav")
+          ),
+          Emission.ParsingEmission(Token.Key, Key(note = Note.C, accidental = Accidental.Sharp, scale = Scale.Minor)) -> List(
+            dir.asParent("/pack1/808s/pack1 808 C#min.wav")
+          ),
+          Emission.ParsingEmission(Token.Key, Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major)) -> List(
+            dir.asParent("/pack1/808s/synthy/pack1 808 A.wav")
+          ),
+          Emission.ParsingEmission(Token.Maker, Label("pack1")) -> List(
+            dir.asParent("/pack1/808s/pack1 808 Cmin.wav"),
+            dir.asParent("/pack1/808s/pack1 808 C#min.wav"),
+            dir.asParent("/pack1/808s/synthy/pack1 808 A.wav")
+          ),
+          Emission.ParsingEmission(Token.Name, Label("808")) -> List(
+            dir.asParent("/pack1/808s/pack1 808 Cmin.wav"),
+            dir.asParent("/pack1/808s/pack1 808 C#min.wav"),
+            dir.asParent("/pack1/808s/synthy/pack1 808 A.wav")
+          )
         )
       )
       val files = FileSystem.listFiles(subdir)
