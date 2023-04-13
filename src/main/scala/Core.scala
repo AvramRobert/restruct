@@ -40,9 +40,31 @@ object Core {
       fileData <- readFileData(files, parser)
     } yield DirectoryStructure(
       fileData = fileData,
-      structure = args.dirStructure,
+      folderStructure = args.dirStructure,
+      renamePattern = args.filePattern,
       reversionSchema = Map.empty
     )
 
-    def createRestructureSchema(dir: DirectoryStructure): List[(File, File)] = Nil
+    def createRestructureSchema(dir: DirectoryStructure): List[File] = traverse(dir, dir.folderStructure)
+
+    private def traverse(dir: DirectoryStructure,
+                         patterns: List[Pattern],
+                         path: List[Emission] = List.empty, // unique concrete path derived from structure
+                         files: Set[File] = Set.empty, // files in the unique path
+                         ): List[File] = patterns match {
+      case Nil => deriveFiles(dir, path.reverse, files)
+      case p :: ps => dir.fileData.metaData.get(p) match {
+        case Some(emissions) => emissions.flatMap { emission =>
+          dir.fileData.contentData.get(emission) match {
+            case Some(efs) => traverse(dir, ps, emission :: path, files.intersect(efs.toSet))
+            case None => Nil
+          }
+        }
+        case None => Nil
+      }
+    }
+
+    private def deriveFiles(dir: DirectoryStructure,
+                            path: List[Emission],
+                            files: Set[File]): List[File] = Nil // TODO
 }
