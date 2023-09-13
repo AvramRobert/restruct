@@ -1,4 +1,6 @@
-import data.*
+import data.Emission.ParsingEmission
+import data.{NamingToken, *}
+import data.NamingToken.*
 
 import java.io.File
 import scala.annotation.tailrec
@@ -14,7 +16,7 @@ object Parsing extends RegexParsers {
 
   private def noteParser(note: Note): Parser[Note] = literal(note.encoding).map { _ => note }
 
-  private def tokenParser[A](t: Token[A]): Parser[Token[A]] = for {
+  private def tokenParser[A](t: NamingToken[A]): Parser[NamingToken[A]] = for {
     _ <- whiteSpace.*
     _ <- lt
     _ <- whiteSpace.*
@@ -23,18 +25,19 @@ object Parsing extends RegexParsers {
     _ <- gt
   } yield t
 
-  private def parserFor[A](token: Token[A]): Parser[A] = token match {
-    case Token.Key => key
-    case Token.Maker => label
-    case Token.Name => label
-    case Token.Tempo => tempo
+  private def parserFor[A](token: NamingToken[A]): Parser[A] = token match {
+    case KeyToken => key
+    case MakerToken => label
+    case NameToken => label
+    case TempoToken => tempo
+    case ExtensionToken => extension
   }
 
   def fromPatterns(patterns: List[Pattern]): Parser[List[Emission]] = Parser { input =>
     @tailrec
     def unravel(rules: List[Pattern], data: List[Emission] = List.empty, rem: Input = input): ParseResult[List[Emission]] = rules match {
       case Pattern.TokenPattern(token) :: ps => parserFor(token)(rem) match {
-        case Success(result, next) => unravel(ps, Emission.ParsingEmission(token, result) +: data, next)
+        case Success(result, next) => unravel(ps, ParsingEmission(token, result) +: data, next)
         case Error(msg, next) => Error(msg, next)
         case Failure(msg, next) => Failure(msg, next)
       }
@@ -63,6 +66,10 @@ object Parsing extends RegexParsers {
     else success(s.toLong)
   }
 
+  val mp3: Parser[Extension] = literal(".mp3").map(_ => Extension.MP3)
+  val wav: Parser[Extension] = literal(".wav").map(_ => Extension.WAV)
+  val flacc: Parser[Extension] = literal(".flacc").map(_ => Extension.FLACC)
+
   val A: Parser[Note] = noteParser(Note.A)
   val B: Parser[Note] = noteParser(Note.B)
   val C: Parser[Note] = noteParser(Note.C)
@@ -76,7 +83,7 @@ object Parsing extends RegexParsers {
 
   val sharp: Parser[Accidental] = anyCase(Accidental.Sharp.encoding).map { _ => Accidental.Sharp }
   val flat: Parser[Accidental] = anyCase(Accidental.Flat.encoding).map { _ => Accidental.Flat }
-  val noAcc: Parser[Accidental] = "".r.map { _ => Accidental.None }
+  val noAcc: Parser[Accidental] = "".r.map { _ => Accidental.Natural }
 
   val note: Parser[Note] = A ||| B ||| C ||| D ||| E ||| F ||| G
   val scale: Parser[Scale] = min ||| maj
@@ -105,10 +112,15 @@ object Parsing extends RegexParsers {
     label <- literalIf { c => !delimiters.contains(c) }
   } yield Label(label)
 
-  val makerToken: Parser[Token[Label]] = tokenParser(Token.Maker)
-  val nameToken: Parser[Token[Label]] = tokenParser(Token.Name)
-  val keyToken: Parser[Token[Key]] = tokenParser(Token.Key)
-  val tempoToken: Parser[Token[Tempo]] = tokenParser(Token.Tempo)
+  val extension: Parser[Extension] = for {
+    _   <- whiteSpace.*
+    ext <- mp3 ||| wav ||| flacc
+  } yield ext
+
+  val makerToken: Parser[NamingToken[Label]] = tokenParser(MakerToken)
+  val nameToken: Parser[NamingToken[Label]] = tokenParser(NameToken)
+  val keyToken: Parser[NamingToken[Key]] = tokenParser(KeyToken)
+  val tempoToken: Parser[NamingToken[Tempo]] = tokenParser(TempoToken)
 
   val pattern: Parser[Pattern] =
     makerToken.map(Pattern.TokenPattern(_)) |||
@@ -147,7 +159,6 @@ object Parsing extends RegexParsers {
     _       <- arg(Argument.DirStructure)
     pattern <- pathPattern.*
   } yield pattern
-
 
   val renamePatternArg: Parser[List[Pattern]] = for {
     _     <- arg(Argument.RenamePattern)

@@ -1,5 +1,6 @@
 import data.*
 import data.Pattern.TokenPattern
+import data.NamingToken.*
 
 import java.io.File
 import scala.util.parsing.combinator.*
@@ -36,7 +37,7 @@ class ParsingTest extends munit.FunSuite {
       data = Map(
         "#" -> Accidental.Sharp,
         "b" -> Accidental.Flat,
-        "" -> Accidental.None
+        "" -> Accidental.Natural
       ),
       parser = Parsing.accidental
     )
@@ -44,18 +45,18 @@ class ParsingTest extends munit.FunSuite {
 
   test("Can parse keys") {
     val singular = Map(
-      "A" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "A   " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "    A" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "   A   " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "A" -> Key(note = Note.A, accidental = Accidental.Natural, scale = Scale.Major),
+      "A   " -> Key(note = Note.A, accidental = Accidental.Natural, scale = Scale.Major),
+      "    A" -> Key(note = Note.A, accidental = Accidental.Natural, scale = Scale.Major),
+      "   A   " -> Key(note = Note.A, accidental = Accidental.Natural, scale = Scale.Major),
     )
     val scaled = Map(
-      "AMin" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Minor),
-      "Amaj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "Amaj    " -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "    Amaj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "  A Maj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
-      "A maj" -> Key(note = Note.A, accidental = Accidental.None, scale = Scale.Major),
+      "AMin" -> Key(note = Note.A, accidental = Accidental.Natural, scale = Scale.Minor),
+      "Amaj" -> Key(note = Note.A, accidental = Accidental.Natural, scale = Scale.Major),
+      "Amaj    " -> Key(note = Note.A, accidental = Accidental.Natural, scale = Scale.Major),
+      "    Amaj" -> Key(note = Note.A, accidental = Accidental.Natural, scale = Scale.Major),
+      "  A Maj" -> Key(note = Note.A, accidental = Accidental.Natural, scale = Scale.Major),
+      "A maj" -> Key(note = Note.A, accidental = Accidental.Natural, scale = Scale.Major),
     )
     val accidentalSingular = Map(
       "A#" -> Key(note = Note.A, accidental = Accidental.Sharp, scale = Scale.Major),
@@ -132,12 +133,26 @@ class ParsingTest extends munit.FunSuite {
     )
   }
 
+  test("Can parse extensions") {
+    testParser(
+      data = Map(
+        ".mp3" -> Extension.MP3,
+        "        .mp3" -> Extension.MP3,
+        ".wav" -> Extension.WAV,
+        "        .wav" -> Extension.WAV,
+        ".flacc" -> Extension.FLACC,
+        "        .flacc" -> Extension.FLACC
+      ),
+      parser = Parsing.extension
+    )
+  }
+
   test("Can parse maker patterns") {
     testParser(
       data = Map(
-        "<maker>" -> Pattern.TokenPattern(Token.Maker),
-        "   <maker>" -> Pattern.TokenPattern(Token.Maker),
-        "<maker>   " -> Pattern.TokenPattern(Token.Maker)
+        "<maker>" -> TokenPattern(MakerToken),
+        "   <maker>" -> TokenPattern(MakerToken),
+        "<maker>   " -> TokenPattern(MakerToken)
       ),
       parser = Parsing.pattern
     )
@@ -146,9 +161,9 @@ class ParsingTest extends munit.FunSuite {
   test("Can parse name patterns") {
     testParser(
       data = Map(
-        "<name>" -> Pattern.TokenPattern(Token.Name),
-        "   <name>" -> Pattern.TokenPattern(Token.Name),
-        "<name>   " -> Pattern.TokenPattern(Token.Name)
+        "<name>" -> TokenPattern(NameToken),
+        "   <name>" -> TokenPattern(NameToken),
+        "<name>   " -> TokenPattern(NameToken)
       ),
       parser = Parsing.pattern
     )
@@ -157,9 +172,9 @@ class ParsingTest extends munit.FunSuite {
   test("Can parse key patterns") {
     testParser(
       data = Map(
-        "<key>" -> Pattern.TokenPattern(Token.Key),
-        "   <key>" -> Pattern.TokenPattern(Token.Key),
-        "<key>   " -> Pattern.TokenPattern(Token.Key)
+        "<key>" -> TokenPattern(KeyToken),
+        "   <key>" -> TokenPattern(KeyToken),
+        "<key>   " -> TokenPattern(KeyToken)
       ),
       parser = Parsing.pattern
     )
@@ -168,9 +183,9 @@ class ParsingTest extends munit.FunSuite {
   test("Can parse tempo patterns") {
     testParser(
       data = Map(
-        "<tempo>" -> Pattern.TokenPattern(Token.Tempo),
-        "   <tempo>" -> Pattern.TokenPattern(Token.Tempo),
-        "<tempo>   " -> Pattern.TokenPattern(Token.Tempo)
+        "<tempo>" -> TokenPattern(TempoToken),
+        "   <tempo>" -> TokenPattern(TempoToken),
+        "<tempo>   " -> TokenPattern(TempoToken)
       ),
       parser = Parsing.pattern
     )
@@ -180,10 +195,10 @@ class ParsingTest extends munit.FunSuite {
     testParser(
       data = Map(
         "<maker> <name> <tempo> <key>" -> List(
-          Pattern.TokenPattern(Token.Maker),
-          Pattern.TokenPattern(Token.Name),
-          Pattern.TokenPattern(Token.Tempo),
-          Pattern.TokenPattern(Token.Key)
+          TokenPattern(MakerToken),
+          TokenPattern(NameToken),
+          TokenPattern(TempoToken),
+          TokenPattern(KeyToken)
         )
       ),
       parser = Parsing.pattern.*
@@ -195,11 +210,11 @@ class ParsingTest extends munit.FunSuite {
     testParser(
       data = Map(
         "86bpm brave new world C#maj" -> List(
-          Emission.ParsingEmission(Token.Tempo, Tempo(86)),
-          Emission.ParsingEmission(Token.Maker, Label("brave")),
-          Emission.ParsingEmission(Token.Maker, Label("new")),
-          Emission.ParsingEmission(Token.Maker, Label("world")),
-          Emission.ParsingEmission(Token.Key, Key(Note.C, Accidental.Sharp, Scale.Major)))
+          Emission.ParsingEmission(TempoToken, Tempo(86)),
+          Emission.ParsingEmission(MakerToken, Label("brave")),
+          Emission.ParsingEmission(MakerToken, Label("new")),
+          Emission.ParsingEmission(MakerToken, Label("world")),
+          Emission.ParsingEmission(KeyToken, Key(Note.C, Accidental.Sharp, Scale.Major)))
       ),
       parser = Parsing.fromPatterns(patterns)
     )
@@ -221,10 +236,10 @@ class ParsingTest extends munit.FunSuite {
     testParser(
       data = Map(
         "--file-pattern=<maker> <name> <key> <tempo>" -> List(
-          Pattern.TokenPattern(Token.Maker),
-          Pattern.TokenPattern(Token.Name),
-          Pattern.TokenPattern(Token.Key),
-          Pattern.TokenPattern(Token.Tempo)
+          TokenPattern(MakerToken),
+          TokenPattern(NameToken),
+          TokenPattern(KeyToken),
+          TokenPattern(TempoToken)
         )
       ),
       parser = Parsing.filePatternArg
@@ -235,16 +250,16 @@ class ParsingTest extends munit.FunSuite {
     testParser(
       data = Map(
         "--dir-structure=<maker>/<name>/<key>/<tempo>" -> List(
-          Pattern.TokenPattern(Token.Maker),
-          Pattern.TokenPattern(Token.Name),
-          Pattern.TokenPattern(Token.Key),
-          Pattern.TokenPattern(Token.Tempo)
+          TokenPattern(MakerToken),
+          TokenPattern(NameToken),
+          TokenPattern(KeyToken),
+          TokenPattern(TempoToken)
         ),
         "--dir-structure=/<maker>/<name>/<key>/<tempo>" -> List(
-          Pattern.TokenPattern(Token.Maker),
-          Pattern.TokenPattern(Token.Name),
-          Pattern.TokenPattern(Token.Key),
-          Pattern.TokenPattern(Token.Tempo)
+          TokenPattern(MakerToken),
+          TokenPattern(NameToken),
+          TokenPattern(KeyToken),
+          TokenPattern(TempoToken)
         ),
       ),
       parser = Parsing.dirStructureArg
@@ -255,10 +270,10 @@ class ParsingTest extends munit.FunSuite {
     testParser(
       data = Map(
         "--rename-pattern=<maker> <name> <key> <tempo>" -> List(
-          Pattern.TokenPattern(Token.Maker),
-          Pattern.TokenPattern(Token.Name),
-          Pattern.TokenPattern(Token.Key),
-          Pattern.TokenPattern(Token.Tempo)
+          TokenPattern(MakerToken),
+          TokenPattern(NameToken),
+          TokenPattern(KeyToken),
+          TokenPattern(TempoToken)
         )
       ),
       parser = Parsing.renamePatternArg
@@ -270,9 +285,9 @@ class ParsingTest extends munit.FunSuite {
       data = Map(
         "--file-pattern=<name> <key> --dir=C:/this/is/some/path --dir-structure=<name>/<key> --rename-pattern=<key> <name>" -> CliArguments(
           directory = File("C:/this/is/some/path"),
-          filePattern = List(Pattern.TokenPattern(Token.Name), Pattern.TokenPattern(Token.Key)),
-          dirStructure = List(Pattern.TokenPattern(Token.Name), Pattern.TokenPattern(Token.Key)),
-          renamePattern = List(Pattern.TokenPattern(Token.Key), Pattern.TokenPattern(Token.Name))
+          filePattern = List(TokenPattern(NameToken), TokenPattern(KeyToken)),
+          dirStructure = List(TokenPattern(NameToken), TokenPattern(KeyToken)),
+          renamePattern = List(TokenPattern(KeyToken), TokenPattern(NameToken))
         )
       ),
       parser = Parsing.cliArguments

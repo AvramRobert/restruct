@@ -2,6 +2,8 @@ package data
 
 import typeclasses.Encoding
 
+import java.security.cert.Extension
+
 enum Note(val encoding: String):
   case A extends Note("A")
   case B extends Note("B")
@@ -11,12 +13,14 @@ enum Note(val encoding: String):
   case F extends Note("F")
   case G extends Note("G")
 
+// Music theory defines more than just these two scales
+// I assume kits only limit themselves to these because their sort-of.. simple
 enum Scale(val encoding: String):
   case Major extends Scale("maj")
   case Minor extends Scale("min")
 
 enum Accidental(val encoding: String):
-  case None extends Accidental("")
+  case Natural extends Accidental("")
   case Flat extends Accidental("b")
   case Sharp extends Accidental("#")
 
@@ -25,6 +29,11 @@ case class Key(note: Note, accidental: Accidental, scale: Scale)
 case class Tempo(bpm: Long)
 
 case class Label(label: String)
+
+enum Extension(val encoding: String):
+  case MP3 extends Extension("mp3")
+  case WAV extends Extension("wav")
+  case FLACC extends Extension("flacc")
 
 given Encoding[Note] with
   def encode(note: Note): String = note.encoding
